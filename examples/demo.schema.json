@@ -25,6 +25,7 @@
       "format": "markdown",
       "write": "section",
       "section": "Context",
+      "body": "Describe the current project here.",
       "path": "GUIDE.md",
       "location": "root",
       "scope": "project",

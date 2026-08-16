@@ -27,7 +27,7 @@ s, _ := schema.Parse(embedded)
 app.New(app.Options{Name: "mycli", Schema: s}).Execute()
 ```
 
-That binary gets one command per entity, plus `skills` and `schema validate`.
+That binary gets one command per entity, plus `init`, `skills`, and `schema validate`. `init` creates every declared path in schema order and leaves existing files alone unless `--force`.
 
 ```bash
 ctxl --schema examples/demo.schema.json --scope project status write --service hermes --start up --stop down
@@ -38,6 +38,7 @@ ctxl --schema examples/demo.schema.json log list --full
 ctxl --schema examples/demo.schema.json note create --id n1 --title hello
 ctxl --schema examples/demo.schema.json guide write --body "installed notes"
 ctxl --schema examples/demo.schema.json alias write
+ctxl --schema examples/demo.schema.json init
 ctxl --schema examples/demo.schema.json schema validate
 ```
 
