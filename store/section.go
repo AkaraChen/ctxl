@@ -12,11 +12,12 @@ var (
 )
 
 type mdSection struct {
-	Heading string
-	Level   int
-	Body    string
-	Start   int
-	End     int
+	Heading     string
+	HeadingLine string
+	Level       int
+	Body        string
+	Start       int
+	End         int
 }
 
 func parseSections(content string) []mdSection {
@@ -63,7 +64,8 @@ func parseSections(content string) []mdSection {
 		body := content[h.start+h.headingLength : end]
 		body = strings.TrimLeft(body, "\r\n")
 		body = strings.TrimRight(body, " \t\r\n")
-		out = append(out, mdSection{Heading: h.heading, Level: h.level, Body: body, Start: h.start, End: end})
+		line := content[h.start : h.start+h.headingLength]
+		out = append(out, mdSection{Heading: h.heading, HeadingLine: line, Level: h.level, Body: body, Start: h.start, End: end})
 	}
 	return out
 }
@@ -102,18 +104,19 @@ func renderSection(heading, body string, level int) string {
 }
 
 func upsertSection(content, heading, body string) string {
-	block := renderSection(heading, body, 2)
+	trimmedBody := strings.TrimRightFunc(strings.TrimLeft(body, "\r\n"), unicode.IsSpace)
 	if strings.TrimSpace(content) == "" {
-		return block
+		return renderSection(heading, trimmedBody, 2)
 	}
 	secs := parseSections(content)
 	target, ok := findSection(secs, heading)
 	if !ok {
 		trimmed := strings.TrimRight(content, "\r\n")
-		return trimmed + "\n\n" + block
+		return trimmed + "\n\n" + renderSection(heading, trimmedBody, 2)
 	}
 	before := strings.TrimRight(content[:target.Start], "\r\n")
 	after := strings.TrimLeft(content[target.End:], "\r\n")
+	block := target.HeadingLine + "\n\n" + trimmedBody + "\n"
 	middle := block
 	if before != "" {
 		middle = before + "\n\n" + block

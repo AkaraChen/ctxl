@@ -143,7 +143,7 @@ func TestSectionWriteAndSymlink(t *testing.T) {
 	if got := string(raw); !containsAll(got, "# Context", "first") {
 		t.Fatalf("created: %s", got)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "GUIDE.md"), []byte("# Intro\n\nkeep\n\n```\n# Context\nnot a heading\n```\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "GUIDE.md"), []byte("# Intro\n\nkeep\n\n```\n# Context\nnot a heading\n```\n\n# Context\n\nold\n\n# Other\n\nstay\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if err := st.WriteSingular(guide, Record{Body: "installed"}); err != nil {
@@ -154,8 +154,14 @@ func TestSectionWriteAndSymlink(t *testing.T) {
 		t.Fatal(err)
 	}
 	got := string(raw)
-	if !containsAll(got, "# Intro", "keep", "not a heading", "# Context", "installed") {
+	if !containsAll(got, "# Intro", "keep", "not a heading", "# Context", "installed", "# Other", "stay") {
 		t.Fatalf("section: %s", got)
+	}
+	if strings.Contains(got, "## Context") {
+		t.Fatalf("heading level changed: %s", got)
+	}
+	if strings.Contains(got, "old") {
+		t.Fatalf("old body remained: %s", got)
 	}
 	alias, _ := st.Entity("alias")
 	if err := st.WriteSingular(alias, Record{}); err != nil {
