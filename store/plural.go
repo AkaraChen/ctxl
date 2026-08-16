@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/AkaraChen/ctxlayer/schema"
+	"github.com/AkaraChen/ctxl/schema"
 )
 
 func (st Store) AppendNDJSON(e schema.Entity, fields map[string]any) (map[string]any, error) {
@@ -214,4 +214,26 @@ func asInt(v any) (int, bool) {
 	default:
 		return 0, false
 	}
+}
+
+// FixedRows drops object-typed fields (such as custom_data) so list defaults
+// to the fixed columns. Pass the original rows when --full is set.
+func FixedRows(e schema.Entity, rows []map[string]any) []map[string]any {
+	keep := map[string]bool{}
+	for _, f := range e.Fields {
+		if f.Type != schema.TypeObject {
+			keep[f.Name] = true
+		}
+	}
+	out := make([]map[string]any, 0, len(rows))
+	for _, row := range rows {
+		slim := map[string]any{}
+		for k, v := range row {
+			if keep[k] {
+				slim[k] = v
+			}
+		}
+		out = append(out, slim)
+	}
+	return out
 }

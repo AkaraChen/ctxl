@@ -2,19 +2,19 @@ package schema
 
 import "testing"
 
-func TestParseYoiExample(t *testing.T) {
+func TestParseDemoExample(t *testing.T) {
 	raw := []byte(`{
-	  "name": "yoi",
+	  "name": "demo",
 	  "entities": [
-	    {"name":"deploy","kind":"singular","format":"markdown","path":"DEPLOY.md","location":"root","fields":[{"name":"service","type":"string","required":true}]},
-	    {"name":"log","kind":"plural","format":"ndjson","path":"deploy.log","fields":[{"name":"result","type":"string","required":true}]}
+	    {"name":"status","kind":"singular","format":"markdown","path":"STATUS.md","location":"root","fields":[{"name":"service","type":"string","required":true}]},
+	    {"name":"log","kind":"plural","format":"ndjson","path":"events.log","fields":[{"name":"result","type":"string","required":true}]}
 	  ]
 	}`)
 	s, err := Parse(raw)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if s.Name != "yoi" || len(s.Entities) != 2 {
+	if s.Name != "demo" || len(s.Entities) != 2 {
 		t.Fatalf("%+v", s)
 	}
 }

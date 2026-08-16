@@ -6,12 +6,25 @@ import (
 	"strings"
 	"time"
 
-	"github.com/AkaraChen/ctxlayer/schema"
+	"github.com/AkaraChen/ctxl/schema"
 )
 
 type Record struct {
 	Fields map[string]string
 	Body   string
+}
+
+// Public flattens frontmatter keys to the top level so show prints
+// service/port/start/stop/last_green, not an internal Fields/Body wrapper.
+func (r Record) Public() map[string]any {
+	out := make(map[string]any, len(r.Fields)+1)
+	for k, v := range r.Fields {
+		out[k] = v
+	}
+	if body := strings.TrimSpace(r.Body); body != "" {
+		out["body"] = body
+	}
+	return out
 }
 
 func (st Store) WriteSingular(e schema.Entity, rec Record) error {
@@ -25,11 +38,9 @@ func (st Store) WriteSingular(e schema.Entity, rec Record) error {
 	if rec.Fields == nil {
 		rec.Fields = map[string]string{}
 	}
-	if _, ok := rec.Fields["last_green"]; !ok {
-		for _, f := range e.Fields {
-			if f.Name == "last_green" {
-				rec.Fields["last_green"] = time.Now().Format(time.RFC3339)
-			}
+	for _, f := range e.Fields {
+		if f.Name == "last_green" && strings.TrimSpace(rec.Fields["last_green"]) == "" {
+			rec.Fields["last_green"] = time.Now().Format(time.RFC3339)
 		}
 	}
 	var b strings.Builder
