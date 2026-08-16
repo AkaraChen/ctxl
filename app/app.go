@@ -69,6 +69,7 @@ func New(opts Options) *cobra.Command {
 	for _, ent := range s.Entities {
 		root.AddCommand(entityCommand(ent, open))
 	}
+	root.AddCommand(initCommand(open))
 	root.AddCommand(skillsCommand(func() schema.Schema { return s }))
 	root.AddCommand(schemaValidate(func() schema.Schema { return s }))
 	return root
@@ -398,4 +399,21 @@ func writeShort(e schema.Entity) string {
 		return "Write section in " + e.Name
 	}
 	return "Overwrite current " + e.Name
+}
+
+func initCommand(open func() (store.Store, error)) *cobra.Command {
+	var force bool
+	cmd := &cobra.Command{Use: "init", Short: "Create every entity path declared in the schema", RunE: func(cmd *cobra.Command, args []string) error {
+		st, err := open()
+		if err != nil {
+			return err
+		}
+		rows, err := st.Init(force)
+		if err != nil {
+			return err
+		}
+		return printJSON(rows)
+	}}
+	cmd.Flags().BoolVar(&force, "force", false, "overwrite existing files")
+	return cmd
 }

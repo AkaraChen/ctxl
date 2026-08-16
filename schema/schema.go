@@ -70,6 +70,7 @@ type Entity struct {
 	Write       WriteMode `json:"write,omitempty"`
 	Section     string    `json:"section,omitempty"`
 	Target      string    `json:"target,omitempty"`
+	Body        string    `json:"body,omitempty"`
 	Description string    `json:"description,omitempty"`
 	Fields      []Field   `json:"fields"`
 }

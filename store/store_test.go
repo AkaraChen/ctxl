@@ -221,3 +221,66 @@ func containsAll(s string, parts ...string) bool {
 func stringContains(s, sub string) bool {
 	return strings.Contains(s, sub)
 }
+
+func TestInitCreatesThenSkips(t *testing.T) {
+	s, err := schema.LoadFile("../examples/demo.schema.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	st, err := Open(s, ScopeProject, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows, err := st.Init(false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rows) != 5 {
+		t.Fatalf("rows %d", len(rows))
+	}
+	for _, r := range rows {
+		if r.Action != "created" {
+			t.Fatalf("%+v", r)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(dir, "STATUS.md")); err != nil {
+		t.Fatal(err)
+	}
+	guide, err := os.ReadFile(filepath.Join(dir, "GUIDE.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(guide), "# Context") || !strings.Contains(string(guide), "Describe the current project here.") {
+		t.Fatalf("guide %s", guide)
+	}
+	dest, err := os.Readlink(filepath.Join(dir, "ALIAS.md"))
+	if err != nil || dest != "GUIDE.md" {
+		t.Fatalf("alias %s %v", dest, err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, ".demo", "events.log")); err != nil {
+		t.Fatal(err)
+	}
+	if info, err := os.Stat(filepath.Join(dir, "docs", "notes")); err != nil || !info.IsDir() {
+		t.Fatalf("notes dir %v", err)
+	}
+	again, err := st.Init(false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, r := range again {
+		if r.Action != "skipped" {
+			t.Fatalf("second pass %+v", r)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(dir, "GUIDE.md"), []byte("# Context\n\nkeep me\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.Init(false); err != nil {
+		t.Fatal(err)
+	}
+	kept, _ := os.ReadFile(filepath.Join(dir, "GUIDE.md"))
+	if !strings.Contains(string(kept), "keep me") {
+		t.Fatalf("overwrote without force: %s", kept)
+	}
+}

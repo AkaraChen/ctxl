@@ -118,6 +118,7 @@ Each entity:
 - ` + "`scope`" + `: ` + "`project`" + `, ` + "`global`" + `, or ` + "`both`" + `. Default ` + "`both`" + `.
 - ` + "`write`" + `: ` + "`replace`" + ` (overwrite the file) or ` + "`section`" + ` (one heading in an existing file). Default ` + "`replace`" + `.
 - ` + "`section`" + `: heading text when ` + "`write`" + ` is ` + "`section`" + `.
+- ` + "`body`" + `: default section text used by ` + "`init`" + ` the first time.
 - ` + "`target`" + `: destination path when ` + "`format`" + ` is ` + "`symlink`" + `.
 - ` + "`fields`" + `: ` + "`name`" + `, ` + "`type`" + ` (` + "`string`" + `|` + "`int`" + `|` + "`object`" + `), optional ` + "`required`" + `
 
@@ -129,6 +130,8 @@ Rules:
 - Plural ` + "`ndjson`" + ` is one append-only file.
 - Plural ` + "`markdown`" + ` is a folder of ` + "`<id>.md`" + ` files.
 - One entity is one skill. After writing the JSON, tell the user to run ` + "`ctxl --schema FILE skills get overview`" + `.
+
+Create every declared path with ` + "`ctxl --schema FILE init`" + `. Existing files are left alone unless ` + "`--force`" + `.
 
 Validate with ` + "`ctxl schema validate --schema FILE`" + `.
 `
