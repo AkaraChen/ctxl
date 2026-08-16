@@ -19,6 +19,14 @@ type Format string
 const (
 	FormatMarkdown Format = "markdown"
 	FormatNDJSON   Format = "ndjson"
+	FormatSymlink  Format = "symlink"
+)
+
+type WriteMode string
+
+const (
+	WriteReplace WriteMode = "replace"
+	WriteSection WriteMode = "section"
 )
 
 type Scope string
@@ -58,9 +66,12 @@ type Entity struct {
 	Path        string   `json:"path"`
 	Location    Location `json:"location,omitempty"`
 	Scope       Scope    `json:"scope,omitempty"`
-	ID          string   `json:"id,omitempty"`
-	Description string   `json:"description,omitempty"`
-	Fields      []Field  `json:"fields"`
+	ID          string    `json:"id,omitempty"`
+	Write       WriteMode `json:"write,omitempty"`
+	Section     string    `json:"section,omitempty"`
+	Target      string    `json:"target,omitempty"`
+	Description string    `json:"description,omitempty"`
+	Fields      []Field   `json:"fields"`
 }
 
 type Schema struct {
@@ -107,11 +118,28 @@ func (s Schema) Validate() error {
 		if e.Kind != KindSingular && e.Kind != KindPlural {
 			return fmt.Errorf("entity %q: kind must be singular or plural", e.Name)
 		}
-		if e.Format != FormatMarkdown && e.Format != FormatNDJSON {
-			return fmt.Errorf("entity %q: format must be markdown or ndjson", e.Name)
+		if e.Format != FormatMarkdown && e.Format != FormatNDJSON && e.Format != FormatSymlink {
+			return fmt.Errorf("entity %q: format must be markdown, ndjson, or symlink", e.Name)
 		}
-		if e.Kind == KindSingular && e.Format != FormatMarkdown {
-			return fmt.Errorf("entity %q: singular only supports markdown", e.Name)
+		if e.Kind == KindSingular && e.Format != FormatMarkdown && e.Format != FormatSymlink {
+			return fmt.Errorf("entity %q: singular supports markdown or symlink", e.Name)
+		}
+		if e.Kind == KindPlural && e.Format == FormatSymlink {
+			return fmt.Errorf("entity %q: symlink is singular", e.Name)
+		}
+		if e.Write != "" && e.Write != WriteReplace && e.Write != WriteSection {
+			return fmt.Errorf("entity %q: write must be replace or section", e.Name)
+		}
+		if e.ResolvedWrite() == WriteSection {
+			if e.Kind != KindSingular || e.Format != FormatMarkdown {
+				return fmt.Errorf("entity %q: write section is singular markdown", e.Name)
+			}
+			if strings.TrimSpace(e.Section) == "" {
+				return fmt.Errorf("entity %q: section heading is required", e.Name)
+			}
+		}
+		if e.Format == FormatSymlink && strings.TrimSpace(e.Target) == "" {
+			return fmt.Errorf("entity %q: symlink target is required", e.Name)
 		}
 		if e.Kind == KindPlural && e.Format == FormatNDJSON && e.Path == "" {
 			return fmt.Errorf("entity %q: ndjson path is required", e.Name)
@@ -120,7 +148,7 @@ func (s Schema) Validate() error {
 			return fmt.Errorf("entity %q: markdown collection path is required", e.Name)
 		}
 		if e.Kind == KindSingular && e.Path == "" {
-			return fmt.Errorf("entity %q: markdown path is required", e.Name)
+			return fmt.Errorf("entity %q: path is required", e.Name)
 		}
 	}
 	return nil
@@ -154,4 +182,11 @@ func (e Entity) IDField() string {
 		return e.ID
 	}
 	return "id"
+}
+
+func (e Entity) ResolvedWrite() WriteMode {
+	if e.Write != "" {
+		return e.Write
+	}
+	return WriteReplace
 }

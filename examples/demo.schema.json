@@ -1,11 +1,12 @@
 {
   "name": "demo",
-  "description": "Example context layer: current status, an append-only log, and a markdown collection.",
+  "description": "Example context layer: current status, a section in an existing file, a symlink, an append-only log, and a root-level markdown collection.",
   "entities": [
     {
       "name": "status",
       "kind": "singular",
       "format": "markdown",
+      "write": "replace",
       "path": "STATUS.md",
       "location": "root",
       "scope": "project",
@@ -17,6 +18,27 @@
         {"name": "stop", "type": "string", "required": true, "description": "how to stop"},
         {"name": "last_green", "type": "string", "description": "last successful time"}
       ]
+    },
+    {
+      "name": "guide",
+      "kind": "singular",
+      "format": "markdown",
+      "write": "section",
+      "section": "Context",
+      "path": "GUIDE.md",
+      "location": "root",
+      "scope": "project",
+      "description": "One titled section in an existing markdown file."
+    },
+    {
+      "name": "alias",
+      "kind": "singular",
+      "format": "symlink",
+      "path": "ALIAS.md",
+      "target": "GUIDE.md",
+      "location": "root",
+      "scope": "project",
+      "description": "Symlink to the guide file."
     },
     {
       "name": "log",
@@ -39,10 +61,10 @@
       "name": "note",
       "kind": "plural",
       "format": "markdown",
-      "path": "notes",
-      "location": "store",
+      "path": "docs/notes",
+      "location": "root",
       "id": "id",
-      "description": "One note per file under .demo/notes/<id>.md",
+      "description": "One note per file under docs/notes/<id>.md",
       "fields": [
         {"name": "id", "type": "string", "required": true},
         {"name": "title", "type": "string", "required": true}

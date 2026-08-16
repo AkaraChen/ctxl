@@ -25,3 +25,26 @@ func TestRejectBadKind(t *testing.T) {
 		t.Fatal("expected error")
 	}
 }
+
+func TestSectionAndSymlink(t *testing.T) {
+	s, err := Parse([]byte(`{
+	  "name": "demo",
+	  "entities": [
+	    {"name":"guide","kind":"singular","format":"markdown","write":"section","section":"Context","path":"GUIDE.md"},
+	    {"name":"alias","kind":"singular","format":"symlink","path":"ALIAS.md","target":"GUIDE.md"}
+	  ]
+	}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s.Entities[0].ResolvedWrite() != WriteSection {
+		t.Fatal(s.Entities[0].Write)
+	}
+}
+
+func TestRejectSectionWithoutHeading(t *testing.T) {
+	_, err := Parse([]byte(`{"name":"x","entities":[{"name":"a","kind":"singular","format":"markdown","write":"section","path":"a.md"}]}`))
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}

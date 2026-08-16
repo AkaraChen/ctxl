@@ -28,9 +28,15 @@ func (r Record) Public() map[string]any {
 }
 
 func (st Store) WriteSingular(e schema.Entity, rec Record) error {
+	if e.Format == schema.FormatSymlink {
+		return st.WriteSymlink(e)
+	}
 	path, err := st.EntityPath(e)
 	if err != nil {
 		return err
+	}
+	if e.ResolvedWrite() == schema.WriteSection {
+		return st.writeSection(path, e.Section, rec.Body)
 	}
 	if err := st.EnsureParent(path); err != nil {
 		return err
@@ -58,6 +64,17 @@ func (st Store) WriteSingular(e schema.Entity, rec Record) error {
 }
 
 func (st Store) ReadSingular(e schema.Entity) (Record, error) {
+	if e.Format == schema.FormatSymlink {
+		row, err := st.ReadSymlink(e)
+		if err != nil {
+			return Record{}, err
+		}
+		fields := map[string]string{}
+		for k, v := range row {
+			fields[k] = fmt.Sprint(v)
+		}
+		return Record{Fields: fields}, nil
+	}
 	path, err := st.EntityPath(e)
 	if err != nil {
 		return Record{}, err
@@ -69,7 +86,27 @@ func (st Store) ReadSingular(e schema.Entity) (Record, error) {
 		}
 		return Record{}, err
 	}
+	if e.ResolvedWrite() == schema.WriteSection {
+		secs := parseSections(string(raw))
+		if sec, ok := findSection(secs, e.Section); ok {
+			return Record{Fields: map[string]string{"section": sec.Heading}, Body: sec.Body}, nil
+		}
+		return Record{}, fmt.Errorf("no section %q in %s", e.Section, e.Path)
+	}
 	return parseFrontmatter(string(raw))
+}
+
+func (st Store) writeSection(path, heading, body string) error {
+	if err := st.EnsureParent(path); err != nil {
+		return err
+	}
+	cur := ""
+	if raw, err := os.ReadFile(path); err == nil {
+		cur = string(raw)
+	} else if !os.IsNotExist(err) {
+		return err
+	}
+	return os.WriteFile(path, []byte(upsertSection(cur, heading, body)), 0o644)
 }
 
 func parseFrontmatter(text string) (Record, error) {
