@@ -1,15 +1,15 @@
 {
-  "name": "yoi",
-  "description": "Current deploy state and append-only deploy log. This is an example schema; the yoi binary is unchanged.",
+  "name": "demo",
+  "description": "Example context layer: current status, an append-only log, and a markdown collection.",
   "entities": [
     {
-      "name": "deploy",
+      "name": "status",
       "kind": "singular",
       "format": "markdown",
-      "path": "DEPLOY.md",
+      "path": "STATUS.md",
       "location": "root",
       "scope": "project",
-      "description": "Current deploy. Reopen or copy to another machine.",
+      "description": "Current status. Reopen or copy to another machine.",
       "fields": [
         {"name": "service", "type": "string", "required": true, "description": "service name"},
         {"name": "port", "type": "string", "description": "listen port"},
@@ -22,10 +22,10 @@
       "name": "log",
       "kind": "plural",
       "format": "ndjson",
-      "path": "deploy.log",
+      "path": "events.log",
       "location": "store",
       "scope": "project",
-      "description": "Audit log. Failures and how many times it was installed.",
+      "description": "Append-only event log.",
       "fields": [
         {"name": "id", "type": "int"},
         {"name": "ts", "type": "string"},
@@ -33,6 +33,19 @@
         {"name": "result", "type": "string", "required": true},
         {"name": "cmd", "type": "string", "required": true},
         {"name": "custom_data", "type": "object"}
+      ]
+    },
+    {
+      "name": "note",
+      "kind": "plural",
+      "format": "markdown",
+      "path": "notes",
+      "location": "store",
+      "id": "id",
+      "description": "One note per file under .demo/notes/<id>.md",
+      "fields": [
+        {"name": "id", "type": "string", "required": true},
+        {"name": "title", "type": "string", "required": true}
       ]
     }
   ]

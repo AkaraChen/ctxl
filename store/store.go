@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/AkaraChen/ctxlayer/schema"
+	"github.com/AkaraChen/ctxl/schema"
 )
 
 type Scope schema.Scope

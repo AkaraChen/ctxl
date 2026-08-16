@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/AkaraChen/ctxlayer/schema"
+	"github.com/AkaraChen/ctxl/schema"
 )
 
 func Overview(s schema.Schema) string {
@@ -17,7 +17,7 @@ func Overview(s schema.Schema) string {
 	b.WriteString("This file is an index. Load exactly one entity skill before writing or reading.\n\n")
 	b.WriteString("```bash\n")
 	for _, e := range s.Entities {
-		fmt.Fprintf(&b, "ctxlayer --schema <file> skills get %s\n", e.Name)
+		fmt.Fprintf(&b, "ctxl --schema <file> skills get %s\n", e.Name)
 	}
 	b.WriteString("```\n\n")
 	b.WriteString("| Entity | Kind | Format | When to load |\n| --- | --- | --- | --- |\n")
@@ -40,7 +40,7 @@ func Entity(s schema.Schema, e schema.Entity) string {
 	}
 	fmt.Fprintf(&b, "---\nname: %s\ndescription: %s. Do not load other entity skills at the same time.\n---\n\n", e.Name, desc)
 	fmt.Fprintf(&b, "# %s\n\n", e.Name)
-	fmt.Fprintf(&b, "Call `ctxlayer`. Do not open the files yourself.\n\n")
+	fmt.Fprintf(&b, "Call `ctxl`. Do not open the files yourself.\n\n")
 	fmt.Fprintf(&b, "Scope: `--scope project` writes `./.%s/`. `--scope global` writes `~/.%s/`.\n", s.Name, s.Name)
 	if e.ResolvedLocation() == schema.LocationRoot && e.Kind == schema.KindSingular {
 		fmt.Fprintf(&b, "This entity is at the project root: `%s`.\n", e.Path)
@@ -49,8 +49,8 @@ func Entity(s schema.Schema, e schema.Entity) string {
 	switch {
 	case e.Kind == schema.KindSingular:
 		b.WriteString("```bash\n")
-		b.WriteString("ctxlayer --schema <file> --scope project " + e.Name + " show\n")
-		b.WriteString("ctxlayer --schema <file> --scope project " + e.Name + " write")
+		b.WriteString("ctxl --schema <file> --scope project " + e.Name + " show\n")
+		b.WriteString("ctxl --schema <file> --scope project " + e.Name + " write")
 		for _, f := range e.Fields {
 			if f.Required {
 				fmt.Fprintf(&b, " --%s VALUE", f.Name)
@@ -59,20 +59,20 @@ func Entity(s schema.Schema, e schema.Entity) string {
 		b.WriteString("\n```\n")
 	case e.Format == schema.FormatNDJSON:
 		b.WriteString("```bash\n")
-		fmt.Fprintf(&b, "ctxlayer --schema <file> %s append", e.Name)
+		fmt.Fprintf(&b, "ctxl --schema <file> %s append", e.Name)
 		for _, f := range e.Fields {
 			if f.Required {
 				fmt.Fprintf(&b, " --%s VALUE", f.Name)
 			}
 		}
-		fmt.Fprintf(&b, "\nctxlayer --schema <file> %s list\nctxlayer --schema <file> %s get --id ID\n```\n", e.Name, e.Name)
+		fmt.Fprintf(&b, "\nctxl --schema <file> %s list\nctxl --schema <file> %s list --full\nctxl --schema <file> %s get --id ID\n```\n", e.Name, e.Name, e.Name)
 	default:
 		b.WriteString("```bash\n")
-		fmt.Fprintf(&b, "ctxlayer --schema <file> %s create --id ID\n", e.Name)
-		fmt.Fprintf(&b, "ctxlayer --schema <file> %s list\n", e.Name)
-		fmt.Fprintf(&b, "ctxlayer --schema <file> %s get --id ID\n", e.Name)
-		fmt.Fprintf(&b, "ctxlayer --schema <file> %s update --id ID\n", e.Name)
-		fmt.Fprintf(&b, "ctxlayer --schema <file> %s delete --id ID\n```\n", e.Name)
+		fmt.Fprintf(&b, "ctxl --schema <file> %s create --id ID\n", e.Name)
+		fmt.Fprintf(&b, "ctxl --schema <file> %s list\n", e.Name)
+		fmt.Fprintf(&b, "ctxl --schema <file> %s get --id ID\n", e.Name)
+		fmt.Fprintf(&b, "ctxl --schema <file> %s update --id ID\n", e.Name)
+		fmt.Fprintf(&b, "ctxl --schema <file> %s delete --id ID\n```\n", e.Name)
 	}
 	if len(e.Fields) > 0 {
 		b.WriteString("\nFields:\n\n")
@@ -95,10 +95,10 @@ func Entity(s schema.Schema, e schema.Entity) string {
 func SchemaAuthoring() string {
 	return `---
 name: schema
-description: Write or edit a ctxlayer JSON schema. Use when creating a new named context layer or adding an entity.
+description: Write or edit a ctxl JSON schema. Use when creating a new named context layer or adding an entity.
 ---
 
-# Author a ctxlayer schema
+# Author a ctxl schema
 
 Produce one JSON object. Do not invent file formats outside this shape.
 
@@ -119,9 +119,9 @@ Rules:
 - Singular is one markdown file (current state). Write overwrites.
 - Plural ` + "`ndjson`" + ` is one append-only file.
 - Plural ` + "`markdown`" + ` is a folder of ` + "`<id>.md`" + ` files.
-- One entity is one skill. After writing the JSON, tell the user to run ` + "`ctxlayer --schema FILE skills get overview`" + `.
+- One entity is one skill. After writing the JSON, tell the user to run ` + "`ctxl --schema FILE skills get overview`" + `.
 
-Validate with ` + "`ctxlayer schema validate --schema FILE`" + `.
+Validate with ` + "`ctxl schema validate --schema FILE`" + `.
 `
 }
 

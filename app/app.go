@@ -6,9 +6,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/AkaraChen/ctxlayer/schema"
-	"github.com/AkaraChen/ctxlayer/skillsgen"
-	"github.com/AkaraChen/ctxlayer/store"
+	"github.com/AkaraChen/ctxl/schema"
+	"github.com/AkaraChen/ctxl/skillsgen"
+	"github.com/AkaraChen/ctxl/store"
 	"github.com/spf13/cobra"
 )
 
@@ -38,7 +38,7 @@ func New(opts Options) *cobra.Command {
 	var schemaPath, scope string
 	root := &cobra.Command{
 		Use:           bin,
-		Short:         s.Description,
+		Short:         shortOf(s),
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
@@ -57,7 +57,7 @@ func New(opts Options) *cobra.Command {
 			return nil
 		},
 	}
-	root.PersistentFlags().StringVar(&schemaPath, "schema", "", "optional override schema JSON file")
+	root.PersistentFlags().StringVar(&schemaPath, "schema", "", "JSON schema file")
 	root.PersistentFlags().StringVar(&scope, "scope", "project", "project|global")
 	open := func() (store.Store, error) {
 		sc := store.ScopeProject
@@ -104,7 +104,7 @@ func writeCmd(e schema.Entity, open func() (store.Store, error)) *cobra.Command 
 		}
 		fields := map[string]string{}
 		for _, f := range e.Fields {
-			if p := values[f.Name]; p != nil {
+			if p := values[f.Name]; p != nil && (cmd.Flags().Changed(f.Name) || *p != "") {
 				fields[f.Name] = *p
 			}
 		}
@@ -132,7 +132,7 @@ func showCmd(e schema.Entity, open func() (store.Store, error)) *cobra.Command {
 		if err != nil {
 			return err
 		}
-		return printJSON(rec)
+		return printJSON(rec.Public())
 	}}
 }
 
@@ -186,7 +186,8 @@ func appendCmd(e schema.Entity, open func() (store.Store, error)) *cobra.Command
 }
 
 func listNDJSONCmd(e schema.Entity, open func() (store.Store, error)) *cobra.Command {
-	return &cobra.Command{Use: "list", Short: "List " + e.Name + " rows", RunE: func(cmd *cobra.Command, args []string) error {
+	var full bool
+	cmd := &cobra.Command{Use: "list", Short: "List " + e.Name + " rows; default is fixed fields only", RunE: func(cmd *cobra.Command, args []string) error {
 		st, err := open()
 		if err != nil {
 			return err
@@ -198,8 +199,13 @@ func listNDJSONCmd(e schema.Entity, open func() (store.Store, error)) *cobra.Com
 		if rows == nil {
 			rows = []map[string]any{}
 		}
+		if !full {
+			rows = store.FixedRows(e, rows)
+		}
 		return printJSON(rows)
 	}}
+	cmd.Flags().BoolVar(&full, "full", false, "include object fields such as custom_data")
+	return cmd
 }
 
 func getNDJSONCmd(e schema.Entity, open func() (store.Store, error)) *cobra.Command {
@@ -375,4 +381,11 @@ func peekFlag(args []string, name string) string {
 		}
 	}
 	return ""
+}
+
+func shortOf(s schema.Schema) string {
+	if s.Description != "" {
+		return s.Description
+	}
+	return "Context layer. Pass --schema FILE."
 }
