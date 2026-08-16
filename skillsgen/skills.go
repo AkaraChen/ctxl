@@ -42,11 +42,15 @@ func Entity(s schema.Schema, e schema.Entity) string {
 	fmt.Fprintf(&b, "# %s\n\n", e.Name)
 	fmt.Fprintf(&b, "Call `ctxl`. Do not open the files yourself.\n\n")
 	fmt.Fprintf(&b, "Scope: `--scope project` writes `./.%s/`. `--scope global` writes `~/.%s/`.\n", s.Name, s.Name)
-	if e.ResolvedLocation() == schema.LocationRoot && e.Kind == schema.KindSingular {
+	if e.ResolvedLocation() == schema.LocationRoot {
 		fmt.Fprintf(&b, "This entity is at the project root: `%s`.\n", e.Path)
 	}
 	b.WriteString("\n")
 	switch {
+	case e.Format == schema.FormatSymlink:
+		b.WriteString("```bash\n")
+		b.WriteString("ctxl --schema <file> --scope project " + e.Name + " show\n")
+		b.WriteString("ctxl --schema <file> --scope project " + e.Name + " write\n```\n")
 	case e.Kind == schema.KindSingular:
 		b.WriteString("```bash\n")
 		b.WriteString("ctxl --schema <file> --scope project " + e.Name + " show\n")
@@ -109,14 +113,19 @@ Required keys:
 
 Each entity:
 
-- ` + "`name`" + `, ` + "`kind`" + ` (` + "`singular`" + ` or ` + "`plural`" + `), ` + "`format`" + ` (` + "`markdown`" + ` or ` + "`ndjson`" + `), ` + "`path`" + `
-- ` + "`location`" + `: ` + "`root`" + ` (project root file) or ` + "`store`" + ` (under the dotted directory). Default ` + "`store`" + `.
+- ` + "`name`" + `, ` + "`kind`" + ` (` + "`singular`" + ` or ` + "`plural`" + `), ` + "`format`" + ` (` + "`markdown`" + `, ` + "`ndjson`" + `, or ` + "`symlink`" + `), ` + "`path`" + `
+- ` + "`location`" + `: ` + "`root`" + ` (project root, including plural folders) or ` + "`store`" + ` (under the dotted directory). Default ` + "`store`" + `.
 - ` + "`scope`" + `: ` + "`project`" + `, ` + "`global`" + `, or ` + "`both`" + `. Default ` + "`both`" + `.
+- ` + "`write`" + `: ` + "`replace`" + ` (overwrite the file) or ` + "`section`" + ` (one heading in an existing file). Default ` + "`replace`" + `.
+- ` + "`section`" + `: heading text when ` + "`write`" + ` is ` + "`section`" + `.
+- ` + "`target`" + `: destination path when ` + "`format`" + ` is ` + "`symlink`" + `.
 - ` + "`fields`" + `: ` + "`name`" + `, ` + "`type`" + ` (` + "`string`" + `|` + "`int`" + `|` + "`object`" + `), optional ` + "`required`" + `
 
 Rules:
 
-- Singular is one markdown file (current state). Write overwrites.
+- Singular markdown ` + "`replace`" + ` overwrites the file.
+- Singular markdown ` + "`section`" + ` updates one heading. Headings inside fences are ignored. Missing file is created first.
+- Singular ` + "`symlink`" + ` creates a link. Already linked is a no-op. Missing target is an error. An existing non-link is refused.
 - Plural ` + "`ndjson`" + ` is one append-only file.
 - Plural ` + "`markdown`" + ` is a folder of ` + "`<id>.md`" + ` files.
 - One entity is one skill. After writing the JSON, tell the user to run ` + "`ctxl --schema FILE skills get overview`" + `.

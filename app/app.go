@@ -97,7 +97,7 @@ func entityShort(e schema.Entity) string {
 func writeCmd(e schema.Entity, open func() (store.Store, error)) *cobra.Command {
 	values := map[string]*string{}
 	var body string
-	cmd := &cobra.Command{Use: "write", Short: "Overwrite current " + e.Name, RunE: func(cmd *cobra.Command, args []string) error {
+	cmd := &cobra.Command{Use: "write", Short: writeShort(e), RunE: func(cmd *cobra.Command, args []string) error {
 		st, err := open()
 		if err != nil {
 			return err
@@ -388,4 +388,14 @@ func shortOf(s schema.Schema) string {
 		return s.Description
 	}
 	return "Context layer. Pass --schema FILE."
+}
+
+func writeShort(e schema.Entity) string {
+	if e.Format == schema.FormatSymlink {
+		return "Create symlink " + e.Name
+	}
+	if e.ResolvedWrite() == schema.WriteSection {
+		return "Write section in " + e.Name
+	}
+	return "Overwrite current " + e.Name
 }

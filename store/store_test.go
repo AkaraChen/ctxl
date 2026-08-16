@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/AkaraChen/ctxl/schema"
@@ -119,4 +120,98 @@ func TestFixedRowsDropsObjectFields(t *testing.T) {
 	if slim[0]["result"] != "green" {
 		t.Fatalf("%+v", slim[0])
 	}
+}
+
+func TestSectionWriteAndSymlink(t *testing.T) {
+	s, err := schema.LoadFile("../examples/demo.schema.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	st, err := Open(s, ScopeProject, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	guide, _ := st.Entity("guide")
+	if err := st.WriteSingular(guide, Record{Body: "first"}); err != nil {
+		t.Fatal(err)
+	}
+	raw, err := os.ReadFile(filepath.Join(dir, "GUIDE.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := string(raw); !containsAll(got, "# Context", "first") {
+		t.Fatalf("created: %s", got)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "GUIDE.md"), []byte("# Intro\n\nkeep\n\n```\n# Context\nnot a heading\n```\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.WriteSingular(guide, Record{Body: "installed"}); err != nil {
+		t.Fatal(err)
+	}
+	raw, err = os.ReadFile(filepath.Join(dir, "GUIDE.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := string(raw)
+	if !containsAll(got, "# Intro", "keep", "not a heading", "# Context", "installed") {
+		t.Fatalf("section: %s", got)
+	}
+	alias, _ := st.Entity("alias")
+	if err := st.WriteSingular(alias, Record{}); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.WriteSingular(alias, Record{}); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(dir, "ALIAS.md")
+	dest, err := os.Readlink(link)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if dest != "GUIDE.md" {
+		t.Fatalf("link %s", dest)
+	}
+}
+
+func TestRootMarkdownCollection(t *testing.T) {
+	s, err := schema.LoadFile("../examples/demo.schema.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	st, _ := Open(s, ScopeProject, dir)
+	note, _ := st.Entity("note")
+	if err := st.WriteMarkdownItem(note, "n1", Record{Fields: map[string]string{"title": "hello"}, Body: "body"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "docs", "notes", "n1.md")); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSymlinkMissingTarget(t *testing.T) {
+	s, err := schema.LoadFile("../examples/demo.schema.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	st, _ := Open(s, ScopeProject, dir)
+	alias, _ := st.Entity("alias")
+	if err := st.WriteSingular(alias, Record{}); err == nil {
+		t.Fatal("expected missing target")
+	}
+}
+
+func containsAll(s string, parts ...string) bool {
+	for _, p := range parts {
+		if !stringContains(s, p) {
+			return false
+		}
+	}
+	return true
+}
+
+func stringContains(s, sub string) bool {
+	return strings.Contains(s, sub)
 }
