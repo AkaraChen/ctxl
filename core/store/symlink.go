@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/AkaraChen/ctxl/schema"
+	"github.com/AkaraChen/ctxl/core/schema"
 )
 
 func (st Store) WriteSymlink(e schema.Entity) error {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/AkaraChen/ctxl/schema"
+	"github.com/AkaraChen/ctxl/core/schema"
 )
 
 func Overview(s schema.Schema) string {

@@ -7,11 +7,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/AkaraChen/ctxl/schema"
+	"github.com/AkaraChen/ctxl/core/schema"
 )
 
 func TestSingularAndNDJSON(t *testing.T) {
-	s, err := schema.LoadFile("../examples/demo.schema.json")
+	s, err := schema.LoadFile("../../examples/demo.schema.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,7 +46,7 @@ func TestSingularAndNDJSON(t *testing.T) {
 }
 
 func TestMarkdownCollection(t *testing.T) {
-	s, err := schema.LoadFile("../examples/demo.schema.json")
+	s, err := schema.LoadFile("../../examples/demo.schema.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -66,9 +66,8 @@ func TestMarkdownCollection(t *testing.T) {
 	}
 }
 
-
 func TestLastGreenFilledWhenEmpty(t *testing.T) {
-	s, err := schema.LoadFile("../examples/demo.schema.json")
+	s, err := schema.LoadFile("../../examples/demo.schema.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -98,7 +97,7 @@ func TestLastGreenFilledWhenEmpty(t *testing.T) {
 }
 
 func TestFixedRowsDropsObjectFields(t *testing.T) {
-	s, err := schema.LoadFile("../examples/demo.schema.json")
+	s, err := schema.LoadFile("../../examples/demo.schema.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -123,7 +122,7 @@ func TestFixedRowsDropsObjectFields(t *testing.T) {
 }
 
 func TestSectionWriteAndSymlink(t *testing.T) {
-	s, err := schema.LoadFile("../examples/demo.schema.json")
+	s, err := schema.LoadFile("../../examples/demo.schema.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -181,7 +180,7 @@ func TestSectionWriteAndSymlink(t *testing.T) {
 }
 
 func TestRootMarkdownCollection(t *testing.T) {
-	s, err := schema.LoadFile("../examples/demo.schema.json")
+	s, err := schema.LoadFile("../../examples/demo.schema.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -197,7 +196,7 @@ func TestRootMarkdownCollection(t *testing.T) {
 }
 
 func TestSymlinkMissingTarget(t *testing.T) {
-	s, err := schema.LoadFile("../examples/demo.schema.json")
+	s, err := schema.LoadFile("../../examples/demo.schema.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -223,7 +222,7 @@ func stringContains(s, sub string) bool {
 }
 
 func TestInitCreatesThenSkips(t *testing.T) {
-	s, err := schema.LoadFile("../examples/demo.schema.json")
+	s, err := schema.LoadFile("../../examples/demo.schema.json")
 	if err != nil {
 		t.Fatal(err)
 	}

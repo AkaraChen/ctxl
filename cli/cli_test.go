@@ -1,4 +1,4 @@
-package app
+package cli
 
 import (
 	"bytes"
@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/AkaraChen/ctxl/schema"
+	"github.com/AkaraChen/ctxl/core/schema"
 )
 
 func runCLI(t *testing.T, dir string, args ...string) string {

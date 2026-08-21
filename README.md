@@ -14,6 +14,18 @@ The schema `name` is the store name. Project files live under `.<name>/` in the 
 - **Plural NDJSON** — one append-only file. `append` writes a line (`id` and `ts` are filled in); `list` prints fixed fields unless `--full`; `get --id` reads one row. Object fields are JSON.
 - **Plural markdown** — a folder of `<id>.md` files. `location: root` keeps that folder at the project root.
 
+## Layout
+
+Single module. `core` holds process definitions; `cli` holds cobra behavior.
+
+- `core/schema` — types, validation, parse/load
+- `core/store` — on-disk write/read flows
+- `core/skillsgen` — skill markdown generated from a schema
+- `cli` — flags, subcommands, stdout
+- `cmd/ctxl` — generic binary entrypoint
+
+`cli` depends on `core`. `core` does not import `cli` or cobra.
+
 ## CLI and Go package
 
 ```bash
@@ -23,8 +35,13 @@ go install github.com/AkaraChen/ctxl/cmd/ctxl@latest
 The CLI does not embed a schema. Pass `--schema FILE`. The example is `examples/demo.schema.json`. The same tree is a Go package: parse your own JSON and ship a branded binary.
 
 ```go
+import (
+	"github.com/AkaraChen/ctxl/cli"
+	"github.com/AkaraChen/ctxl/core/schema"
+)
+
 s, _ := schema.Parse(embedded)
-app.New(app.Options{Name: "mycli", Schema: s}).Execute()
+cli.New(cli.Options{Name: "mycli", Schema: s}).Execute()
 ```
 
 That binary gets one command per entity, plus `init`, `skills`, and `schema validate`. `init` creates every declared path in schema order and leaves existing files alone unless `--force`.

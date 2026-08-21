@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/AkaraChen/ctxl/schema"
+	"github.com/AkaraChen/ctxl/core/schema"
 )
 
 type InitResult struct {
