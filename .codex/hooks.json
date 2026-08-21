@@ -1,0 +1,18 @@
+{
+  "description": "Review project documentation before creating a Git commit.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "^Bash$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/spec_doc_review.py\"",
+            "timeout": 10,
+            "statusMessage": "Checking documentation review gate"
+          }
+        ]
+      }
+    ]
+  }
+}
