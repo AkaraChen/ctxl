@@ -1,4 +1,4 @@
-package app
+package cli
 
 import (
 	"encoding/json"
@@ -6,9 +6,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/AkaraChen/ctxl/schema"
-	"github.com/AkaraChen/ctxl/skillsgen"
-	"github.com/AkaraChen/ctxl/store"
+	"github.com/AkaraChen/ctxl/core/schema"
+	"github.com/AkaraChen/ctxl/core/skillsgen"
+	"github.com/AkaraChen/ctxl/core/store"
 	"github.com/spf13/cobra"
 )
 

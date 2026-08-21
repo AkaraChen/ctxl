@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/AkaraChen/ctxl/schema"
+	"github.com/AkaraChen/ctxl/core/schema"
 )
 
 func (st Store) AppendNDJSON(e schema.Entity, fields map[string]any) (map[string]any, error) {

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/AkaraChen/ctxl/schema"
+	"github.com/AkaraChen/ctxl/core/schema"
 )
 
 type Record struct {
