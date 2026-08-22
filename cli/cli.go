@@ -36,6 +36,7 @@ func New(opts Options) *cobra.Command {
 		bin = s.Name
 	}
 	var schemaPath, scope string
+	var entityFilter []string
 	root := &cobra.Command{
 		Use:           bin,
 		Short:         shortOf(s),
@@ -59,6 +60,7 @@ func New(opts Options) *cobra.Command {
 	}
 	root.PersistentFlags().StringVar(&schemaPath, "schema", "", "JSON schema file")
 	root.PersistentFlags().StringVar(&scope, "scope", "project", "project|global")
+	root.PersistentFlags().StringArrayVar(&entityFilter, "entity", nil, "limit grep and tree to these entities")
 	open := func() (store.Store, error) {
 		sc := store.ScopeProject
 		if scope == "global" {
@@ -70,9 +72,63 @@ func New(opts Options) *cobra.Command {
 		root.AddCommand(entityCommand(ent, open))
 	}
 	root.AddCommand(initCommand(open))
+	root.AddCommand(grepCommand(&entityFilter, open))
+	root.AddCommand(treeCommand(&entityFilter, open))
 	root.AddCommand(skillsCommand(func() schema.Schema { return s }))
 	root.AddCommand(schemaValidate(func() schema.Schema { return s }))
 	return root
+}
+
+// ErrNoMatch is the grep empty-result exit so branded binaries can stay silent.
+var ErrNoMatch = store.ErrNoMatch
+
+func grepCommand(names *[]string, open func() (store.Store, error)) *cobra.Command {
+	var regex, ignoreCase bool
+	cmd := &cobra.Command{Use: "grep PATTERN", Short: "Search identity and content in the store", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
+		st, err := open()
+		if err != nil {
+			return err
+		}
+		selected, err := st.Select(*names)
+		if err != nil {
+			return err
+		}
+		hits, err := st.Grep(selected, args[0], store.GrepOptions{Regexp: regex, IgnoreCase: ignoreCase})
+		if err != nil {
+			return err
+		}
+		if hits == nil {
+			hits = []store.Hit{}
+		}
+		if err := printJSON(hits); err != nil {
+			return err
+		}
+		if len(hits) == 0 {
+			return store.ErrNoMatch
+		}
+		return nil
+	}}
+	cmd.Flags().BoolVarP(&regex, "extended-regexp", "E", false, "match as a regular expression")
+	cmd.Flags().BoolVarP(&ignoreCase, "ignore-case", "i", false, "case-insensitive match")
+	return cmd
+}
+
+func treeCommand(names *[]string, open func() (store.Store, error)) *cobra.Command {
+	return &cobra.Command{Use: "tree", Short: "List logical entities in the store", RunE: func(cmd *cobra.Command, args []string) error {
+		st, err := open()
+		if err != nil {
+			return err
+		}
+		selected, err := st.Select(*names)
+		if err != nil {
+			return err
+		}
+		nodes := store.Tree(selected)
+		if nodes == nil {
+			nodes = []store.TreeNode{}
+		}
+		return printJSON(nodes)
+	}}
 }
 
 func entityCommand(e schema.Entity, open func() (store.Store, error)) *cobra.Command {
