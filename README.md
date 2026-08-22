@@ -1,12 +1,24 @@
 # ctxl
 
-A reusable context layer: a JSON schema names a store, declares singular and plural entities, and the same binary serves a cobra CLI plus generated agent skills.
+A reusable context layer: a JSON schema names a store, declares a backend and entities, and the same binary serves a cobra CLI plus generated agent skills.
+
+## Schema
+
+Top-level `backend.type` selects the backend. The shipped backend is `filesystem`. More backend fields will be added later.
+
+```json
+{
+  "name": "demo",
+  "backend": { "type": "filesystem" },
+  "entities": []
+}
+```
 
 ## Store layout
 
 The schema `name` is the store name. Project files live under `.<name>/` in the working directory. Global files live under `~/.<name>/`. An entity may set `location: root` to keep a file or a plural folder at the project root. `--scope project|global` selects which tree to use; an entity may also lock itself to one scope.
 
-## Three entity shapes
+## Entity shapes
 
 - **Singular markdown (`write: replace`)** — one file, current state. `write` overwrites; `show` prints the frontmatter keys. If a `last_green` field exists and is empty, write fills the current RFC3339 time.
 - **Singular markdown (`write: section`)** — one heading in an existing file. Headings inside fences are ignored. Missing file is created, then the section is written.
@@ -44,7 +56,9 @@ s, _ := schema.Parse(embedded)
 cli.New(cli.Options{Name: "mycli", Schema: s}).Execute()
 ```
 
-That binary gets one command per entity, plus `init`, `skills`, and `schema validate`. `init` creates every declared path in schema order and leaves existing files alone unless `--force`.
+That binary gets one command per entity, plus `init`, store-wide `grep` / `tree`, `skills`, and `schema validate`. `init` creates every declared path in schema order and leaves existing files alone unless `--force`.
+
+`grep` and `tree` only cover the ctxl store. Product flags (`--schema`, `--scope`, `--entity`) stay on `ctxl`. Default `grep` is a literal substring; `-E` is a regular expression. Do not call host `grep` or `tree`.
 
 ```bash
 ctxl --schema examples/demo.schema.json --scope project status write --service hermes --start up --stop down
@@ -56,6 +70,8 @@ ctxl --schema examples/demo.schema.json note create --id n1 --title hello
 ctxl --schema examples/demo.schema.json guide write --body "installed notes"
 ctxl --schema examples/demo.schema.json alias write
 ctxl --schema examples/demo.schema.json init
+ctxl --schema examples/demo.schema.json tree
+ctxl --schema examples/demo.schema.json --entity note grep hello
 ctxl --schema examples/demo.schema.json schema validate
 ```
 

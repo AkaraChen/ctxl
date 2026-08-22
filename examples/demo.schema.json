@@ -1,6 +1,9 @@
 {
   "name": "demo",
   "description": "Example context layer: current status, a section in an existing file, a symlink, an append-only log, and a root-level markdown collection.",
+  "backend": {
+    "type": "filesystem"
+  },
   "entities": [
     {
       "name": "status",

@@ -13,4 +13,6 @@ ctxl --schema FILE skills get schema
 ctxl --schema FILE skills get <entity>
 ```
 
+Use `ctxl tree` and `ctxl grep` for store orientation and search. Do not call host `grep` or `tree`.
+
 One entity is one skill. The overview lists every entity. Do not preload all of them.

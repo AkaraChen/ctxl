@@ -15,6 +15,14 @@ func Overview(s schema.Schema) string {
 		fmt.Fprintf(&b, "%s\n\n", s.Description)
 	}
 	b.WriteString("This file is an index. Load exactly one entity skill before writing or reading.\n\n")
+	b.WriteString("Search and orientation use the CLI, not host `grep` or `tree`:\n\n")
+	b.WriteString("```bash\n")
+	b.WriteString("ctxl --schema <file> tree\n")
+	b.WriteString("ctxl --schema <file> --entity <name> tree\n")
+	b.WriteString("ctxl --schema <file> grep PATTERN\n")
+	b.WriteString("ctxl --schema <file> --entity <name> grep PATTERN\n")
+	b.WriteString("ctxl --schema <file> grep -E PATTERN\n")
+	b.WriteString("```\n\n")
 	b.WriteString("```bash\n")
 	for _, e := range s.Entities {
 		fmt.Fprintf(&b, "ctxl --schema <file> skills get %s\n", e.Name)
@@ -109,6 +117,7 @@ Produce one JSON object. Do not invent file formats outside this shape.
 Required keys:
 
 - ` + "`name`" + `: store name. Project files go to ` + "`.${name}/`" + `, global files go to ` + "`~/.${name}/`" + `.
+- ` + "`backend`" + `: object. ` + "`type`" + ` must be ` + "`filesystem`" + ` for this cut. More backend fields will be added later.
 - ` + "`entities`" + `: array of entities.
 
 Each entity:

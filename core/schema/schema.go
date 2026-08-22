@@ -44,6 +44,16 @@ const (
 	LocationStore Location = "store"
 )
 
+type BackendType string
+
+const (
+	BackendFilesystem BackendType = "filesystem"
+)
+
+type Backend struct {
+	Type BackendType `json:"type"`
+}
+
 type FieldType string
 
 const (
@@ -78,6 +88,7 @@ type Entity struct {
 type Schema struct {
 	Name        string   `json:"name"`
 	Description string   `json:"description,omitempty"`
+	Backend     Backend  `json:"backend"`
 	Entities    []Entity `json:"entities"`
 }
 
@@ -103,6 +114,12 @@ func Parse(raw []byte) (Schema, error) {
 func (s Schema) Validate() error {
 	if strings.TrimSpace(s.Name) == "" {
 		return fmt.Errorf("schema.name is required")
+	}
+	if s.Backend.Type == "" {
+		return fmt.Errorf("backend.type is required")
+	}
+	if s.Backend.Type != BackendFilesystem {
+		return fmt.Errorf("backend.type %q is not supported", s.Backend.Type)
 	}
 	if len(s.Entities) == 0 {
 		return fmt.Errorf("schema.entities must not be empty")

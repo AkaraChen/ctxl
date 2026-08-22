@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -9,7 +10,9 @@ import (
 
 func main() {
 	if err := cli.New(cli.Options{Name: "ctxl"}).Execute(); err != nil {
-		fmt.Fprintf(os.Stderr, "ctxl: %v\n", err)
+		if !errors.Is(err, cli.ErrNoMatch) {
+			fmt.Fprintf(os.Stderr, "ctxl: %v\n", err)
+		}
 		os.Exit(1)
 	}
 }
