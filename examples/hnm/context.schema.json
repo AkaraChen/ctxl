@@ -1,5 +1,5 @@
 {
-  "$schema": "https://ctxl.dev/schema/v1.json",
+  "$schema": "https://raw.githubusercontent.com/AkaraChen/ctxl/main/core/schema/loader/ctxl.schema.json",
   "name": "hnm",
   "description": "Agent documentation harness: root AGENTS.md, spec, PRD/ADR collections, and workflow skills.",
   "cli": {"name": "hnmctl"},

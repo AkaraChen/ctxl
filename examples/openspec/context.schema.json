@@ -1,5 +1,5 @@
 {
-  "$schema": "https://ctxl.dev/schema/v1.json",
+  "$schema": "https://raw.githubusercontent.com/AkaraChen/ctxl/main/core/schema/loader/ctxl.schema.json",
   "name": "openspec",
   "description": "Spec-driven development store: change proposals, capability specs, and workflow configuration.",
   "generation": {"module": "example.com/openspec"},

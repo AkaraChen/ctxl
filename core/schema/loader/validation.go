@@ -55,11 +55,11 @@ func validateJSON(raw []byte) error {
 		}
 		compiler := jsonschema.NewCompiler()
 		compiler.DefaultDraft(jsonschema.Draft2020)
-		if err := compiler.AddResource("https://ctxl.dev/schema/v1.json", doc); err != nil {
+		if err := compiler.AddResource("https://raw.githubusercontent.com/AkaraChen/ctxl/main/core/schema/loader/ctxl.schema.json", doc); err != nil {
 			compileErr = err
 			return
 		}
-		compiled, compileErr = compiler.Compile("https://ctxl.dev/schema/v1.json")
+		compiled, compileErr = compiler.Compile("https://raw.githubusercontent.com/AkaraChen/ctxl/main/core/schema/loader/ctxl.schema.json")
 	})
 	if compileErr != nil {
 		return fmt.Errorf("compile ctxl json schema: %w", compileErr)
