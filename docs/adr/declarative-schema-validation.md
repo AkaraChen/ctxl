@@ -10,12 +10,12 @@ Schema validation must not duplicate required fields, patterns, enums, or condit
 
 - Check in a canonical ctxl JSON Schema using JSON Schema Draft 2020-12.
 - Compile and evaluate it with `github.com/santhosh-tekuri/jsonschema/v6` before decoding into runtime Go types.
-- Generate the Go JSON decoder and its basic validation from that same document with `go-jsonschema`; do not maintain validator tags on runtime types.
+- Decode validated input directly into the runtime types with `encoding/json`; do not maintain validator tags or a generated decoder.
 - Reject unknown properties unless an explicit extension point says otherwise.
 - Express required values, patterns, enums, conditional requirements, mutually exclusive values, paths, versions, and configuration shapes in the JSON Schema.
 - Return stable, structured validation errors carrying the source file, JSON instance path, rule, and human-readable message.
 - Apply the same validation entrypoint from code generation and the retained public schema parsing API.
-- Let generated decoding apply literal JSON Schema defaults. After validation, keep only cross-property derivation that JSON Schema defaults cannot express, such as deriving CLI and store names from the root name; derivation is not a second validator.
+- Apply literal JSON Schema defaults and cross-property derivation (such as deriving CLI and store names from the root name) in one normalization step after validation; that step is not a second validator.
 
 ## Alternatives considered
 
@@ -34,12 +34,11 @@ Rejected as the source of truth. Reflection can describe field shapes but does n
 ## Consequences
 
 - Schema authors receive standard JSON paths and rule failures and can use the checked-in schema in editors.
-- Generated Go decoding changes with the JSON Schema. Contract fixtures prove accepted and rejected inputs at the canonical boundary.
+- Literal defaults duplicated in the normalization step must track the JSON Schema. Contract fixtures prove accepted and rejected inputs at the canonical boundary.
 - The new parser is intentionally stricter than the current decoder, including unknown-property rejection.
 - The generator validates completely before touching output.
 
 ## Validation
 
-- Run the upstream JSON Schema test behavior exercised by the selected library through focused integration fixtures.
-- Add positive fixtures for defaults, both output modes, identity overrides, implicit and explicit built-in Skills, multiple custom Skills, and built-in injection options.
-- Add negative fixtures for unknown keys, invalid enum combinations, extra custom-Skill fields, multiple built-in entries, missing directories, unsafe paths, and conflicting effective Skill names.
+- Prove defaults, identity overrides, implicit and explicit built-in Skills, injection, and both output modes through the loader fixtures and the end-to-end generation test.
+- Keep canonical negative fixtures for unknown keys, invalid enum values, and multiple built-in entries; the checked-in JSON Schema remains the exhaustive machine-readable contract.

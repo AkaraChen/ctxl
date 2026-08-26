@@ -34,7 +34,7 @@
 - The generic developer `ctxl` command provides generation-time behavior only and has no schema entity commands.
 - Generated CLIs embed exactly one normalized typed schema, do not parse schema JSON at startup, and never expose `--schema`.
 - The Go API continues to allow downstream code to construct a schema-specialized command without using the standard generated project.
-- Generated schema decoding applies literal JSON Schema defaults once. A generation-time derivation step resolves defaults that depend on other values, such as effective names and output paths. Runtime and Go constructors consume that normalized model and do not reinterpret incomplete structs or accept out-of-schema identity overrides.
+- Schema parsing normalizes once: it applies the canonical schema's literal defaults and resolves defaults that depend on other values, such as effective names and output paths. Runtime and Go constructors consume that normalized model and do not reinterpret incomplete structs or accept out-of-schema identity overrides.
 - Schema evolution is allowed to break commands and stored data compatibility. ctxl provides no automatic data migration contract.
 
 ### Generated CLI commands
@@ -61,8 +61,8 @@
 ### Validation
 
 - A checked-in Draft 2020-12 JSON Schema is the canonical machine-readable contract for ctxl schema documents.
-- Raw schema input is validated with a standards-compliant JSON Schema library before generated decoding and derivation.
-- Go decoding and literal default application are generated from the same JSON Schema; runtime model types carry no parallel validator tags.
+- Raw schema input is validated with a standards-compliant JSON Schema library before decoding and derivation.
+- Validated input decodes directly into the runtime model types; they carry no parallel validator tags.
 - Unknown schema properties are rejected unless the canonical schema defines an extension point.
 - Configuration that cannot affect its selected mode or entity shape is rejected instead of being silently ignored.
 - Validation failures identify the source and instance path and occur before generated output is changed.

@@ -12,7 +12,7 @@ The desired product has a developer generator and schema-specialized runtime bin
 
 - Recast the generic `ctxl` executable as a developer-only code generator. Remove its entity runtime and `--schema` behavior.
 - Invoke generation through standard `go generate`; the invocation identifies one schema file, while the schema owns all generation settings.
-- Generate a thin entrypoint whose Go AST contains the normalized typed schema and bundled Skill data, then call the shared ctxl CLI/runtime packages. The generated executable does not parse or default the user JSON again at startup.
+- Generate a thin entrypoint whose source embeds the normalized typed schema and bundled Skill data as Go literals, then call the shared ctxl CLI/runtime packages. The generated executable does not parse or default the user JSON again at startup.
 - Keep schema-derived command assembly in the shared runtime rather than expanding separate Cobra implementation source for every entity.
 - Preserve the public Go construction API for downstream projects that do not use the generated template.
 - Keep normalization at `schema/loader.Parse` and `schema/loader.LoadFile`. Runtime constructors consume the normalized schema directly; they do not retain alternate identity options or compatibility defaults for manually assembled partial structs.

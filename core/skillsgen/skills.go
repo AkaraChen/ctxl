@@ -12,17 +12,16 @@ import (
 
 	"github.com/AkaraChen/ctxl/core/schema"
 	"github.com/AkaraChen/ctxl/core/skillbundle"
-	playground "github.com/go-playground/validator/v10"
 	"gopkg.in/yaml.v3"
 )
 
 var skillNamePattern = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
 
 type skillFrontmatter struct {
-	Name          string            `yaml:"name" validate:"required,max=64"`
-	Description   string            `yaml:"description" validate:"required,max=1024"`
+	Name          string            `yaml:"name"`
+	Description   string            `yaml:"description"`
 	License       string            `yaml:"license,omitempty"`
-	Compatibility string            `yaml:"compatibility,omitempty" validate:"max=500"`
+	Compatibility string            `yaml:"compatibility,omitempty"`
 	Metadata      map[string]string `yaml:"metadata,omitempty"`
 	AllowedTools  string            `yaml:"allowed-tools,omitempty"`
 }
@@ -327,12 +326,13 @@ func splitFrontmatter(raw []byte) ([]byte, []byte, error) {
 }
 
 func validateFrontmatter(meta skillFrontmatter) error {
-	validate := playground.New(playground.WithRequiredStructEnabled())
-	if err := validate.Struct(meta); err != nil {
-		return err
-	}
-	if !skillNamePattern.MatchString(meta.Name) {
+	switch {
+	case len(meta.Name) > 64 || !skillNamePattern.MatchString(meta.Name):
 		return fmt.Errorf("frontmatter name %q is not a valid Agent Skill name", meta.Name)
+	case meta.Description == "" || len(meta.Description) > 1024:
+		return fmt.Errorf("frontmatter description is required and at most 1024 characters")
+	case len(meta.Compatibility) > 500:
+		return fmt.Errorf("frontmatter compatibility is at most 500 characters")
 	}
 	return nil
 }
