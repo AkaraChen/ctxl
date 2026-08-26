@@ -1,0 +1,4 @@
+interface:
+  display_name: "Feature Development Interrogation"
+  short_description: "Clarify feature intent before implementation"
+  default_prompt: "Use $feature-dev to interrogate this feature idea, resolve product and technical decisions, and document the result."

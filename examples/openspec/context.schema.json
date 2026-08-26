@@ -1,0 +1,62 @@
+{
+  "$schema": "https://ctxl.dev/schema/v1.json",
+  "name": "openspec",
+  "description": "Spec-driven development store: change proposals, capability specs, and workflow configuration.",
+  "generation": {"module": "example.com/openspec"},
+  "skills": [
+    {
+      "type": "builtin",
+      "name": "openspec-store",
+      "description": "Manage OpenSpec changes and specs through the openspec context CLI.",
+      "allowed-tools": "Bash(openspec:*)"
+    },
+    {"type": "custom", "directory": "skills/openspec-propose"},
+    {"type": "custom", "directory": "skills/openspec-apply-change"}
+  ],
+  "entities": [
+    {
+      "name": "config",
+      "kind": "singular",
+      "format": "markdown",
+      "path": "config.md",
+      "fields": [
+        {"name": "schema", "type": "string", "required": true, "description": "Default workflow schema, e.g. spec-driven"},
+        {"name": "store", "type": "string", "description": "Declared default store id"}
+      ],
+      "description": "Project workflow configuration; the body carries the shared project context injected into artifact instructions."
+    },
+    {
+      "name": "change",
+      "kind": "plural",
+      "format": "markdown",
+      "path": "changes",
+      "id": "name",
+      "fields": [
+        {"name": "schema", "type": "string", "required": true, "description": "Workflow schema this change follows"},
+        {"name": "created", "type": "string", "description": "Creation date, YYYY-MM-DD"},
+        {"name": "goal", "type": "string", "description": "One-line goal of the change"}
+      ],
+      "description": "Active change proposals keyed by kebab-case name; the body is the proposal (## Why, ## What Changes, ## Capabilities, ## Impact)."
+    },
+    {
+      "name": "spec",
+      "kind": "plural",
+      "format": "markdown",
+      "path": "specs",
+      "id": "capability",
+      "description": "Main capability specs, the source of truth; the body requires ## Purpose and ## Requirements with ### Requirement / #### Scenario blocks."
+    },
+    {
+      "name": "event",
+      "kind": "plural",
+      "format": "ndjson",
+      "path": "events.ndjson",
+      "fields": [
+        {"name": "change", "type": "string", "required": true, "description": "Change name the event belongs to"},
+        {"name": "action", "type": "string", "required": true, "description": "created | applied | archived"},
+        {"name": "detail", "type": "object", "description": "Free-form event payload"}
+      ],
+      "description": "Append-only audit log of change lifecycle transitions."
+    }
+  ]
+}

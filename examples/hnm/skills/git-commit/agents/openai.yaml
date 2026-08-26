@@ -1,0 +1,4 @@
+interface:
+  display_name: "Git Commit"
+  short_description: "Conventional commit messages from the diff"
+  default_prompt: "Use $git-commit to analyze the working tree or staged changes and create a conventional commit."

@@ -1,0 +1,68 @@
+{
+  "$schema": "https://ctxl.dev/schema/v1.json",
+  "name": "hnm",
+  "description": "Agent documentation harness: root AGENTS.md, spec, PRD/ADR collections, and workflow skills.",
+  "cli": {"name": "hnmctl"},
+  "generation": {"module": "example.com/hnmctl"},
+  "skills": [
+    {
+      "type": "builtin",
+      "name": "hnm-harness",
+      "description": "Operate the hnm documentation harness through hnmctl instead of editing harness files by hand.",
+      "allowed-tools": "Bash(hnmctl:*)"
+    },
+    {"type": "custom", "directory": "skills/feature-dev"},
+    {"type": "custom", "directory": "skills/git-commit"}
+  ],
+  "entities": [
+    {
+      "name": "agents",
+      "kind": "singular",
+      "format": "markdown",
+      "path": "AGENTS.md",
+      "location": "root",
+      "scope": "project",
+      "description": "Root agent instructions: project workflows, commands, and code style."
+    },
+    {
+      "name": "claude",
+      "kind": "singular",
+      "format": "symlink",
+      "path": "CLAUDE.md",
+      "target": "AGENTS.md",
+      "location": "root",
+      "scope": "project",
+      "description": "Claude-facing alias; always a symlink to AGENTS.md so there is one source of truth."
+    },
+    {
+      "name": "spec",
+      "kind": "singular",
+      "format": "markdown",
+      "path": "docs/spec.md",
+      "location": "root",
+      "scope": "project",
+      "description": "Single source of truth for terminology, observable contracts, and system-wide invariants."
+    },
+    {
+      "name": "prd",
+      "kind": "plural",
+      "format": "markdown",
+      "path": "docs/prd",
+      "location": "root",
+      "scope": "project",
+      "description": "Product requirements, one kebab-case file per feature: problem, users, goals, flows, acceptance criteria."
+    },
+    {
+      "name": "adr",
+      "kind": "plural",
+      "format": "markdown",
+      "path": "docs/adr",
+      "location": "root",
+      "scope": "project",
+      "fields": [
+        {"name": "status", "type": "string", "description": "Proposed, Accepted, or Superseded"}
+      ],
+      "description": "Architecture decisions, one kebab-case file per decision: context, choice, alternatives, trade-offs."
+    }
+  ]
+}

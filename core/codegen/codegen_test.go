@@ -102,6 +102,32 @@ func TestGenerateStandaloneBuildAndRuntime(t *testing.T) {
 	}
 }
 
+// Every directory under examples/ must contain a context.schema.json that
+// generates and builds against the current runtime.
+func TestExamples(t *testing.T) {
+	repo := repositoryRoot(t)
+	examples, err := os.ReadDir(filepath.Join(repo, "examples"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, example := range examples {
+		if !example.IsDir() {
+			continue
+		}
+		t.Run(example.Name(), func(t *testing.T) {
+			root := t.TempDir()
+			if err := os.CopyFS(root, os.DirFS(filepath.Join(repo, "examples", example.Name()))); err != nil {
+				t.Fatal(err)
+			}
+			result, err := generate(filepath.Join(root, "context.schema.json"), runtimeDependency{version: "v0.0.0", replace: repo})
+			if err != nil {
+				t.Fatal(err)
+			}
+			runCommand(t, result, "go", "build", ".")
+		})
+	}
+}
+
 func TestGenerateFailurePreservesPreviousOutput(t *testing.T) {
 	root := t.TempDir()
 	repo := repositoryRoot(t)
