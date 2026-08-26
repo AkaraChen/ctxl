@@ -1,0 +1,311 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ctxl.dev/schema/v1.json",
+  "title": "ctxl schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["name", "entities"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "name": { "$ref": "#/$defs/commandName" },
+    "description": { "type": "string", "maxLength": 1024 },
+    "generation": { "$ref": "#/$defs/generation", "default": {"mode": "standalone"} },
+    "cli": { "$ref": "#/$defs/nameOverride" },
+    "store": { "$ref": "#/$defs/nameOverride" },
+    "skills": { "$ref": "#/$defs/skills", "default": [] },
+    "entities": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/entity" }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "skills": {
+            "contains": {
+              "allOf": [
+                { "$ref": "#/$defs/builtinSkill" },
+                { "required": ["name"] }
+              ]
+            },
+            "minContains": 1
+          }
+        },
+        "required": ["skills"]
+      },
+      "else": {
+        "properties": { "name": { "$ref": "#/$defs/skillName" } }
+      }
+    }
+  ],
+  "$defs": {
+    "nameOverride": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": { "$ref": "#/$defs/commandName" }
+      }
+    },
+    "generation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["standalone", "existing-module"],
+          "default": "standalone"
+        },
+        "output": { "$ref": "#/$defs/relativePath" },
+        "module": { "type": "string", "minLength": 1 },
+        "ctxl_version": {
+          "type": "string",
+          "pattern": "^v(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "mode": { "const": "existing-module" } },
+            "required": ["mode"]
+          },
+          "then": { "not": { "required": ["module"] } }
+        }
+      ]
+    },
+    "skillName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "commandName": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+    },
+    "entityCommandName": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+      "not": { "enum": ["completion", "help", "init", "skills"] }
+    },
+    "fieldName": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+      "not": { "enum": ["body", "help", "scope"] }
+    },
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[^/\\\\]",
+      "allOf": [
+        { "not": { "pattern": "(^|[/\\\\])\\.\\.($|[/\\\\])" } },
+        { "not": { "pattern": "^[A-Za-z]:[/\\\\]" } },
+        { "not": { "enum": [".", ".."] } }
+      ]
+    },
+    "builtinSkill": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": { "const": "builtin" },
+        "directory": { "$ref": "#/$defs/relativePath" },
+        "inject": {
+          "type": "string",
+          "enum": ["before", "after"],
+          "default": "after"
+        },
+        "name": { "$ref": "#/$defs/skillName" },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "license": { "type": "string", "minLength": 1 },
+        "compatibility": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": {"type": "string"}
+        },
+        "allowed-tools": { "type": "string", "minLength": 1 }
+      }
+    },
+    "customSkill": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "directory"],
+      "properties": {
+        "type": { "const": "custom" },
+        "directory": { "$ref": "#/$defs/relativePath" }
+      }
+    },
+    "skills": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "oneOf": [
+          { "$ref": "#/$defs/builtinSkill" },
+          { "$ref": "#/$defs/customSkill" }
+        ]
+      },
+      "contains": { "$ref": "#/$defs/builtinSkill" },
+      "minContains": 0,
+      "maxContains": 1,
+      "default": []
+    },
+    "field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "type"],
+      "properties": {
+        "name": { "$ref": "#/$defs/fieldName" },
+        "type": { "type": "string", "enum": ["string", "int", "object"] },
+        "required": { "type": "boolean" },
+        "description": { "type": "string" }
+      }
+    },
+    "entity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "kind", "format", "path"],
+      "properties": {
+        "name": { "$ref": "#/$defs/entityCommandName" },
+        "kind": { "type": "string", "enum": ["singular", "plural"] },
+        "format": { "type": "string", "enum": ["markdown", "ndjson", "symlink"] },
+        "path": { "$ref": "#/$defs/relativePath" },
+        "location": { "type": "string", "enum": ["root", "store"], "default": "store" },
+        "scope": { "type": "string", "enum": ["project", "global", "both"], "default": "both" },
+        "id": { "$ref": "#/$defs/commandName", "default": "id" },
+        "write": { "type": "string", "enum": ["replace", "section"], "default": "replace" },
+        "section": { "type": "string", "minLength": 1 },
+        "target": { "type": "string", "minLength": 1 },
+        "body": { "type": "string" },
+        "description": { "type": "string" },
+        "command": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "name": { "$ref": "#/$defs/entityCommandName" }
+          }
+        },
+        "fields": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/field" },
+          "default": []
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "singular" } }, "required": ["kind"] },
+          "then": { "properties": { "format": { "enum": ["markdown", "symlink"] } } }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "plural" } }, "required": ["kind"] },
+          "then": { "properties": { "format": { "enum": ["markdown", "ndjson"] } } }
+        },
+        {
+          "if": { "properties": { "write": { "const": "section" } }, "required": ["write"] },
+          "then": {
+            "required": ["section"],
+            "properties": {
+              "kind": { "const": "singular" },
+              "format": { "const": "markdown" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "format": { "const": "symlink" } }, "required": ["format"] },
+          "then": {
+            "required": ["target"],
+            "not": {
+              "anyOf": [
+                { "required": ["fields"] },
+                { "required": ["id"] },
+                { "required": ["write"] },
+                { "required": ["section"] },
+                { "required": ["body"] }
+              ]
+            }
+          }
+        },
+        {
+          "if": { "properties": { "format": { "const": "ndjson" } }, "required": ["format"] },
+          "then": {
+            "not": {
+              "anyOf": [
+                { "required": ["write"] },
+                { "required": ["section"] },
+                { "required": ["target"] },
+                { "required": ["body"] }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": { "const": "plural" },
+              "format": { "const": "markdown" }
+            },
+            "required": ["kind", "format"]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                { "required": ["write"] },
+                { "required": ["section"] },
+                { "required": ["target"] },
+                { "required": ["body"] }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": { "const": "singular" },
+              "format": { "const": "markdown" }
+            },
+            "required": ["kind", "format"]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                { "required": ["id"] },
+                { "required": ["target"] }
+              ]
+            },
+            "allOf": [
+              {
+                "if": { "properties": { "write": { "const": "section" } }, "required": ["write"] },
+                "then": { "not": { "required": ["fields"] } },
+                "else": {
+                  "not": {
+                    "anyOf": [
+                      { "required": ["section"] },
+                      { "required": ["body"] }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "if": { "properties": { "scope": { "const": "global" } }, "required": ["scope"] },
+          "then": { "properties": { "location": { "enum": ["store"] } } }
+        }
+      ]
+    }
+  }
+}

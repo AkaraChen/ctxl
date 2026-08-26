@@ -8,226 +8,157 @@ import (
 	"testing"
 
 	"github.com/AkaraChen/ctxl/core/schema"
+	"github.com/AkaraChen/ctxl/core/schema/loader"
 )
 
-func TestSingularAndNDJSON(t *testing.T) {
-	s, err := schema.LoadFile("../../examples/demo.schema.json")
+func TestSingularAndNDJSONStores(t *testing.T) {
+	s := storeTestSchema(t)
+	root := t.TempDir()
+	st, err := Open(s, schema.ScopeProject, root)
 	if err != nil {
 		t.Fatal(err)
 	}
-	dir := t.TempDir()
-	st, err := Open(s, ScopeProject, dir)
+	status := entity(t, s, "status")
+	if err := st.WriteSingular(status, Record{Fields: map[string]string{"service": "api"}, Body: "healthy"}); err != nil {
+		t.Fatal(err)
+	}
+	record, err := st.ReadSingular(status)
 	if err != nil {
 		t.Fatal(err)
 	}
-	deploy, _ := st.Entity("status")
-	if err := st.WriteSingular(deploy, Record{Fields: map[string]string{"service": "hermes", "port": "1", "start": "up", "stop": "down"}, Body: "ok"}); err != nil {
-		t.Fatal(err)
+	if record.Fields["service"] != "api" || record.Body != "healthy" {
+		t.Fatalf("record = %+v", record)
 	}
-	got, err := st.ReadSingular(deploy)
-	if err != nil || got.Fields["service"] != "hermes" {
-		t.Fatalf("%v %+v", err, got)
+	public := record.Public()
+	if public["service"] != "api" || public["body"] != "healthy" {
+		t.Fatalf("public record = %+v", public)
 	}
-	if _, err := os.Stat(filepath.Join(dir, "STATUS.md")); err != nil {
-		t.Fatal(err)
-	}
-	logE, _ := st.Entity("log")
-	row, err := st.AppendNDJSON(logE, map[string]any{"result": "green", "cmd": "up"})
+
+	events := entity(t, s, "events")
+	row, err := st.AppendNDJSON(events, map[string]any{"result": "green", "details": map[string]any{"attempt": 1}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if fmt.Sprint(row["id"]) != "1" {
-		t.Fatalf("id %+v", row["id"])
+	if fmt.Sprint(row["id"]) != "1" || row["ts"] == "" {
+		t.Fatalf("generated fields = %+v", row)
 	}
-	all, err := st.ListNDJSON(logE)
-	if err != nil || len(all) != 1 {
-		t.Fatalf("%v %d", err, len(all))
+	got, err := st.GetNDJSON(events, "1")
+	if err != nil || got["result"] != "green" {
+		t.Fatalf("get = %+v, err=%v", got, err)
+	}
+	rows, err := st.ListNDJSON(events)
+	if err != nil || len(rows) != 1 {
+		t.Fatalf("list = %+v, err=%v", rows, err)
 	}
 }
 
-func TestMarkdownCollection(t *testing.T) {
-	s, err := schema.LoadFile("../../examples/demo.schema.json")
+func TestMarkdownCollectionLifecycle(t *testing.T) {
+	s := storeTestSchema(t)
+	root := t.TempDir()
+	st, err := Open(s, schema.ScopeProject, root)
 	if err != nil {
 		t.Fatal(err)
 	}
-	dir := t.TempDir()
-	st, _ := Open(s, ScopeProject, dir)
-	note, _ := st.Entity("note")
-	if err := st.WriteMarkdownItem(note, "n1", Record{Fields: map[string]string{"title": "hello"}, Body: "body"}); err != nil {
+	notes := entity(t, s, "notes")
+	if err := st.WriteMarkdownItem(notes, "n1", Record{Fields: map[string]string{"title": "first"}, Body: "body"}); err != nil {
 		t.Fatal(err)
 	}
-	ids, err := st.ListMarkdownItems(note)
+	if _, err := os.Stat(filepath.Join(root, "docs", "notes", "n1.md")); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.WriteMarkdownItem(notes, "n1", Record{Fields: map[string]string{"title": "updated"}, Body: "new body"}); err != nil {
+		t.Fatal(err)
+	}
+	ids, err := st.ListMarkdownItems(notes)
 	if err != nil || len(ids) != 1 || ids[0] != "n1" {
-		t.Fatalf("%v %v", err, ids)
+		t.Fatalf("list = %v, err=%v", ids, err)
 	}
-	got, err := st.ReadMarkdownItem(note, "n1")
-	if err != nil || got.Fields["title"] != "hello" {
-		t.Fatalf("%v %+v", err, got)
+	record, err := st.ReadMarkdownItem(notes, "n1")
+	if err != nil || record.Fields["title"] != "updated" || record.Body != "new body" {
+		t.Fatalf("record = %+v, err=%v", record, err)
 	}
-}
-
-func TestLastGreenFilledWhenEmpty(t *testing.T) {
-	s, err := schema.LoadFile("../../examples/demo.schema.json")
-	if err != nil {
+	if err := st.DeleteMarkdownItem(notes, "n1"); err != nil {
 		t.Fatal(err)
 	}
-	dir := t.TempDir()
-	st, err := Open(s, ScopeProject, dir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	deploy, _ := st.Entity("status")
-	if err := st.WriteSingular(deploy, Record{Fields: map[string]string{"service": "hermes", "start": "up", "stop": "down", "last_green": ""}}); err != nil {
-		t.Fatal(err)
-	}
-	got, err := st.ReadSingular(deploy)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got.Fields["last_green"] == "" {
-		t.Fatal("last_green empty")
-	}
-	pub := got.Public()
-	if _, ok := pub["Fields"]; ok {
-		t.Fatal("Public still wraps Fields")
-	}
-	if pub["service"] != "hermes" {
-		t.Fatalf("public %+v", pub)
+	if _, err := st.ReadMarkdownItem(notes, "n1"); err == nil {
+		t.Fatal("deleted note is still readable")
 	}
 }
 
 func TestFixedRowsDropsObjectFields(t *testing.T) {
-	s, err := schema.LoadFile("../../examples/demo.schema.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-	logE, err := s.Entity("log")
-	if err != nil {
-		t.Fatal(err)
-	}
+	events := entity(t, storeTestSchema(t), "events")
 	rows := []map[string]any{{
-		"id": 1, "ts": "t", "project": "p", "result": "green", "cmd": "up",
-		"custom_data": map[string]any{"k": "v"},
+		"id": 1, "ts": "t", "result": "green", "details": map[string]any{"attempt": 1},
 	}}
-	slim := FixedRows(logE, rows)
-	if len(slim) != 1 {
-		t.Fatalf("len %d", len(slim))
+	slim := FixedRows(events, rows)
+	if len(slim) != 1 || slim[0]["result"] != "green" {
+		t.Fatalf("fixed rows = %+v", slim)
 	}
-	if _, ok := slim[0]["custom_data"]; ok {
-		t.Fatal("custom_data still present")
-	}
-	if slim[0]["result"] != "green" {
-		t.Fatalf("%+v", slim[0])
+	if _, ok := slim[0]["details"]; ok {
+		t.Fatalf("object field leaked: %+v", slim[0])
 	}
 }
 
-func TestSectionWriteAndSymlink(t *testing.T) {
-	s, err := schema.LoadFile("../../examples/demo.schema.json")
+func TestSectionAndSymlinkStores(t *testing.T) {
+	s := storeTestSchema(t)
+	root := t.TempDir()
+	st, err := Open(s, schema.ScopeProject, root)
 	if err != nil {
 		t.Fatal(err)
 	}
-	dir := t.TempDir()
-	st, err := Open(s, ScopeProject, dir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	guide, _ := st.Entity("guide")
+	guide := entity(t, s, "guide")
 	if err := st.WriteSingular(guide, Record{Body: "first"}); err != nil {
 		t.Fatal(err)
 	}
-	raw, err := os.ReadFile(filepath.Join(dir, "GUIDE.md"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got := string(raw); !containsAll(got, "# Context", "first") {
-		t.Fatalf("created: %s", got)
-	}
-	if err := os.WriteFile(filepath.Join(dir, "GUIDE.md"), []byte("# Intro\n\nkeep\n\n```\n# Context\nnot a heading\n```\n\n# Context\n\nold\n\n# Other\n\nstay\n"), 0o644); err != nil {
+	guidePath := filepath.Join(root, "GUIDE.md")
+	if err := os.WriteFile(guidePath, []byte("# Intro\n\nkeep\n\n```\n# Context\nnot a heading\n```\n\n# Context\n\nold\n\n# Other\n\nstay\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if err := st.WriteSingular(guide, Record{Body: "installed"}); err != nil {
 		t.Fatal(err)
 	}
-	raw, err = os.ReadFile(filepath.Join(dir, "GUIDE.md"))
+	raw, err := os.ReadFile(guidePath)
 	if err != nil {
 		t.Fatal(err)
 	}
-	got := string(raw)
-	if !containsAll(got, "# Intro", "keep", "not a heading", "# Context", "installed", "# Other", "stay") {
-		t.Fatalf("section: %s", got)
-	}
-	if strings.Contains(got, "## Context") {
-		t.Fatalf("heading level changed: %s", got)
-	}
-	if strings.Contains(got, "old") {
-		t.Fatalf("old body remained: %s", got)
-	}
-	alias, _ := st.Entity("alias")
-	if err := st.WriteSingular(alias, Record{}); err != nil {
-		t.Fatal(err)
-	}
-	if err := st.WriteSingular(alias, Record{}); err != nil {
-		t.Fatal(err)
-	}
-	link := filepath.Join(dir, "ALIAS.md")
-	dest, err := os.Readlink(link)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if dest != "GUIDE.md" {
-		t.Fatalf("link %s", dest)
-	}
-}
-
-func TestRootMarkdownCollection(t *testing.T) {
-	s, err := schema.LoadFile("../../examples/demo.schema.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-	dir := t.TempDir()
-	st, _ := Open(s, ScopeProject, dir)
-	note, _ := st.Entity("note")
-	if err := st.WriteMarkdownItem(note, "n1", Record{Fields: map[string]string{"title": "hello"}, Body: "body"}); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := os.Stat(filepath.Join(dir, "docs", "notes", "n1.md")); err != nil {
-		t.Fatal(err)
-	}
-}
-
-func TestSymlinkMissingTarget(t *testing.T) {
-	s, err := schema.LoadFile("../../examples/demo.schema.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-	dir := t.TempDir()
-	st, _ := Open(s, ScopeProject, dir)
-	alias, _ := st.Entity("alias")
-	if err := st.WriteSingular(alias, Record{}); err == nil {
-		t.Fatal("expected missing target")
-	}
-}
-
-func containsAll(s string, parts ...string) bool {
-	for _, p := range parts {
-		if !stringContains(s, p) {
-			return false
+	content := string(raw)
+	for _, want := range []string{"# Intro", "keep", "not a heading", "# Context", "installed", "# Other", "stay"} {
+		if !strings.Contains(content, want) {
+			t.Fatalf("section missing %q:\n%s", want, content)
 		}
 	}
-	return true
+	if strings.Contains(content, "## Context") || strings.Contains(content, "\nold\n") {
+		t.Fatalf("section replacement changed the wrong content:\n%s", content)
+	}
+
+	alias := entity(t, s, "alias")
+	if err := st.WriteSingular(alias, Record{}); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.WriteSingular(alias, Record{}); err != nil {
+		t.Fatalf("idempotent symlink write: %v", err)
+	}
+	record, err := st.ReadSingular(alias)
+	if err != nil || record.Fields["target"] != "GUIDE.md" {
+		t.Fatalf("symlink record = %+v, err=%v", record, err)
+	}
 }
 
-func stringContains(s, sub string) bool {
-	return strings.Contains(s, sub)
-}
-
-func TestInitCreatesThenSkips(t *testing.T) {
-	s, err := schema.LoadFile("../../examples/demo.schema.json")
+func TestSymlinkRequiresExistingTarget(t *testing.T) {
+	s := storeTestSchema(t)
+	st, err := Open(s, schema.ScopeProject, t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
-	dir := t.TempDir()
-	st, err := Open(s, ScopeProject, dir)
+	if err := st.WriteSingular(entity(t, s, "alias"), Record{}); err == nil {
+		t.Fatal("expected missing target error")
+	}
+}
+
+func TestInitCreatesAndPreservesDeclaredPaths(t *testing.T) {
+	s := storeTestSchema(t)
+	root := t.TempDir()
+	st, err := Open(s, schema.ScopeProject, root)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -235,51 +166,91 @@ func TestInitCreatesThenSkips(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(rows) != 5 {
-		t.Fatalf("rows %d", len(rows))
+	if len(rows) != len(s.Entities) {
+		t.Fatalf("initialized %d paths, want %d", len(rows), len(s.Entities))
 	}
-	for _, r := range rows {
-		if r.Action != "created" {
-			t.Fatalf("%+v", r)
+	for _, row := range rows {
+		if row.Action != "created" {
+			t.Fatalf("first init = %+v", rows)
 		}
 	}
-	if _, err := os.Stat(filepath.Join(dir, "STATUS.md")); err != nil {
+	guidePath := filepath.Join(root, "GUIDE.md")
+	if err := os.WriteFile(guidePath, []byte("# Context\n\nkeep me\n"), 0o644); err != nil {
 		t.Fatal(err)
-	}
-	guide, err := os.ReadFile(filepath.Join(dir, "GUIDE.md"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(string(guide), "# Context") || !strings.Contains(string(guide), "Describe the current project here.") {
-		t.Fatalf("guide %s", guide)
-	}
-	dest, err := os.Readlink(filepath.Join(dir, "ALIAS.md"))
-	if err != nil || dest != "GUIDE.md" {
-		t.Fatalf("alias %s %v", dest, err)
-	}
-	if _, err := os.Stat(filepath.Join(dir, ".demo", "events.log")); err != nil {
-		t.Fatal(err)
-	}
-	if info, err := os.Stat(filepath.Join(dir, "docs", "notes")); err != nil || !info.IsDir() {
-		t.Fatalf("notes dir %v", err)
 	}
 	again, err := st.Init(false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, r := range again {
-		if r.Action != "skipped" {
-			t.Fatalf("second pass %+v", r)
+	for _, row := range again {
+		if row.Action != "skipped" {
+			t.Fatalf("second init = %+v", again)
 		}
 	}
-	if err := os.WriteFile(filepath.Join(dir, "GUIDE.md"), []byte("# Context\n\nkeep me\n"), 0o644); err != nil {
+	kept, err := os.ReadFile(guidePath)
+	if err != nil || !strings.Contains(string(kept), "keep me") {
+		t.Fatalf("init overwrote existing file: %q, err=%v", kept, err)
+	}
+}
+
+func TestStoreOverrideAndEntityScope(t *testing.T) {
+	s, err := loader.Parse([]byte(`{
+	  "name":"demo",
+	  "store":{"name":"custom-data"},
+	  "entities":[{"name":"status","kind":"singular","format":"markdown","path":"STATUS.md","scope":"project"}]
+	}`))
+	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := st.Init(false); err != nil {
+	root := t.TempDir()
+	project, err := Open(s, schema.ScopeProject, root)
+	if err != nil {
 		t.Fatal(err)
 	}
-	kept, _ := os.ReadFile(filepath.Join(dir, "GUIDE.md"))
-	if !strings.Contains(string(kept), "keep me") {
-		t.Fatalf("overwrote without force: %s", kept)
+	dir, err := project.StoreDir()
+	if err != nil {
+		t.Fatal(err)
 	}
+	if dir != filepath.Join(root, ".custom-data") {
+		t.Fatalf("store dir = %q", dir)
+	}
+	global, err := Open(s, schema.ScopeGlobal, root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := global.EntityPath(s.Entities[0]); err == nil {
+		t.Fatal("project-only entity accepted global scope")
+	}
+	if _, err := Open(s, "", root); err == nil {
+		t.Fatal("empty scope was accepted")
+	}
+}
+
+func storeTestSchema(t *testing.T) schema.Schema {
+	t.Helper()
+	s, err := loader.Parse([]byte(`{
+	  "name":"store-test",
+	  "entities":[
+	    {"name":"status","kind":"singular","format":"markdown","path":"STATUS.md","location":"root","scope":"project","fields":[{"name":"service","type":"string"}]},
+	    {"name":"guide","kind":"singular","format":"markdown","write":"section","section":"Context","body":"initial","path":"GUIDE.md","location":"root","scope":"project"},
+	    {"name":"alias","kind":"singular","format":"symlink","path":"ALIAS.md","target":"GUIDE.md","location":"root","scope":"project"},
+	    {"name":"events","kind":"plural","format":"ndjson","path":"events.ndjson","scope":"project","fields":[{"name":"id","type":"int"},{"name":"ts","type":"string"},{"name":"result","type":"string"},{"name":"details","type":"object"}]},
+	    {"name":"notes","kind":"plural","format":"markdown","path":"docs/notes","location":"root","scope":"project","fields":[{"name":"id","type":"string"},{"name":"title","type":"string"}]}
+	  ]
+	}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return s
+}
+
+func entity(t *testing.T, s schema.Schema, name string) schema.Entity {
+	t.Helper()
+	for _, item := range s.Entities {
+		if item.Name == name {
+			return item
+		}
+	}
+	t.Fatalf("missing test entity %q", name)
+	return schema.Entity{}
 }

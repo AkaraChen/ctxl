@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/AkaraChen/ctxl/cli"
+	"github.com/AkaraChen/ctxl/devcli"
 )
 
 func main() {
-	if err := cli.New(cli.Options{Name: "ctxl"}).Execute(); err != nil {
+	if err := devcli.New().Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "ctxl: %v\n", err)
 		os.Exit(1)
 	}

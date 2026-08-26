@@ -1,80 +1,181 @@
 # ctxl
 
-A reusable context layer: a JSON schema names a store, declares singular and plural entities, and the same binary serves a cobra CLI plus generated agent skills.
+`ctxl` is a Go code generator and runtime library for schema-specialized context CLIs. A user-owned JSON schema is the single source of truth for the generated command name, store, entities, output layout, and bundled Agent Skills.
 
-## Store layout
+The generic `ctxl` command is a developer tool. Runtime users execute the generated CLI, which embeds exactly one schema and never accepts `--schema`.
 
-The schema `name` is the store name. Project files live under `.<name>/` in the working directory. Global files live under `~/.<name>/`. An entity may set `location: root` to keep a file or a plural folder at the project root. `--scope project|global` selects which tree to use; an entity may also lock itself to one scope.
+## Generate a CLI
 
-## Three entity shapes
-
-- **Singular markdown (`write: replace`)** — one file, current state. `write` overwrites; `show` prints the frontmatter keys. If a `last_green` field exists and is empty, write fills the current RFC3339 time.
-- **Singular markdown (`write: section`)** — one heading in an existing file. Headings inside fences are ignored. Missing file is created, then the section is written.
-- **Singular symlink** — `path` points at `target`. Already linked is a no-op. Missing target is refused. An existing non-link is refused.
-- **Plural NDJSON** — one append-only file. `append` writes a line (`id` and `ts` are filled in); `list` prints fixed fields unless `--full`; `get --id` reads one row. Object fields are JSON.
-- **Plural markdown** — a folder of `<id>.md` files. `location: root` keeps that folder at the project root.
-
-## Layout
-
-Single module. `core` holds process definitions; `cli` holds cobra behavior.
-
-- `core/schema` — types, validation, parse/load
-- `core/store` — on-disk write/read flows
-- `core/skillsgen` — skill markdown generated from a schema
-- `cli` — flags, subcommands, stdout
-- `cmd/ctxl` — generic binary entrypoint
-
-`cli` depends on `core`. `core` does not import `cli` or cobra.
-
-## CLI and Go package
-
-```bash
-go install github.com/AkaraChen/ctxl/cmd/ctxl@latest
-```
-
-The CLI does not embed a schema. Pass `--schema FILE`. The example is `examples/demo.schema.json`. The same tree is a Go package: parse your own JSON and ship a branded binary.
+Install a released generator or invoke the same version directly from `go:generate`:
 
 ```go
-import (
-	"github.com/AkaraChen/ctxl/cli"
-	"github.com/AkaraChen/ctxl/core/schema"
-)
-
-s, _ := schema.Parse(embedded)
-cli.New(cli.Options{Name: "mycli", Schema: s}).Execute()
+//go:generate go run github.com/AkaraChen/ctxl/cmd/ctxl@latest generate context.schema.json
 ```
 
-That binary gets one command per entity, plus `init`, `skills`, and `schema validate`. `init` creates every declared path in schema order and leaves existing files alone unless `--force`.
+For reproducible generation, replace `latest` with the same pinned ctxl version used by the project.
 
 ```bash
-ctxl --schema examples/demo.schema.json --scope project status write --service hermes --start up --stop down
-ctxl --schema examples/demo.schema.json status show
-ctxl --schema examples/demo.schema.json log append --result green --cmd up
-ctxl --schema examples/demo.schema.json log list
-ctxl --schema examples/demo.schema.json log list --full
-ctxl --schema examples/demo.schema.json note create --id n1 --title hello
-ctxl --schema examples/demo.schema.json guide write --body "installed notes"
-ctxl --schema examples/demo.schema.json alias write
-ctxl --schema examples/demo.schema.json init
-ctxl --schema examples/demo.schema.json schema validate
+go generate ./...
+cd generated/contextctl
+go build -o contextctl .
 ```
+
+Generation configuration belongs in `context.schema.json`, not in `go:generate`. The default mode creates `generated/<name>/` as an independent Go module:
+
+```json
+{
+  "name": "contextctl",
+  "description": "Manage project context.",
+  "entities": [
+    {
+      "name": "status",
+      "kind": "singular",
+      "format": "markdown",
+      "path": "STATUS.md",
+      "location": "root",
+      "scope": "project",
+      "fields": [
+        {"name": "service", "type": "string", "required": true}
+      ]
+    }
+  ]
+}
+```
+
+The output is generated-owned and replaced in full. `ctxl` refuses to replace an unmarked non-empty directory.
+
+## Existing Go module mode
+
+Set `generation.mode` to generate only a command package under the surrounding module. The default output becomes `cmd/<name>`:
+
+```json
+{
+  "name": "contextctl",
+  "generation": {
+    "mode": "existing-module"
+  },
+  "entities": [
+    {"name": "status", "kind": "singular", "format": "markdown", "path": "STATUS.md"}
+  ]
+}
+```
+
+The parent module must already require that ctxl version:
+
+```bash
+go get github.com/AkaraChen/ctxl@latest
+go generate ./...
+go build ./cmd/contextctl
+```
+
+The generator never edits the parent `go.mod` or `go.sum`.
+
+## Names and overrides
+
+By default, the top-level `name` supplies the generated CLI name, store name, standalone module name, built-in Skill name, and output name. Every identity can be overridden in the schema:
+
+```json
+{
+  "name": "context",
+  "cli": {"name": "contextctl"},
+  "store": {"name": "context-data"},
+  "generation": {
+    "mode": "standalone",
+    "output": "tools/contextctl",
+    "module": "example.com/tools/contextctl"
+  },
+  "skills": [
+    {"type": "builtin", "name": "context-agent"}
+  ],
+  "entities": [
+    {
+      "name": "status",
+      "command": {"name": "current"},
+      "kind": "singular",
+      "format": "markdown",
+      "path": "STATUS.md"
+    }
+  ]
+}
+```
+
+All relative paths resolve from the schema file.
 
 ## Skills
 
-Skills are generated from the schema, not checked in as long guides.
+`skills` is an array with two entry types:
 
-- `overview` — index of every entity; load this first
-- one skill per entity — load exactly one before writing or reading
-- `schema` — how to author the JSON
+- `builtin` configures the one ctxl-generated command Skill. It may supply a complete source directory, frontmatter overrides, and `inject: "before" | "after"`. If omitted, ctxl creates the default built-in Skill.
+- `custom` contains exactly `type` and `directory`. Any number may be declared. Each directory is a complete Agent Skill and is bundled without rewriting any file.
 
-```bash
-ctxl --schema FILE skills get overview
-ctxl --schema FILE skills get schema
-ctxl --schema FILE skills get <entity>
+```json
+{
+  "skills": [
+    {
+      "type": "builtin",
+      "directory": "skills/context-agent",
+      "inject": "after",
+      "name": "context-agent",
+      "description": "Use contextctl safely.",
+      "license": "Apache-2.0",
+      "compatibility": "Requires contextctl on PATH.",
+      "metadata": {"owner": "platform"},
+      "allowed-tools": "Bash(contextctl:*)"
+    },
+    {"type": "custom", "directory": "skills/deploy"},
+    {"type": "custom", "directory": "skills/debug"}
+  ]
+}
 ```
 
-`skills/ctxl/SKILL.md` is a thin stub that only points at those commands.
+Every source directory follows the Agent Skills layout and contains `SKILL.md`. Supporting scripts, references, assets, binary files, empty directories, and executable modes are embedded in the generated binary. Generated CLIs expose:
 
-## Distribution
+```bash
+contextctl skills list
+contextctl skills get context-agent
+contextctl skills path deploy
+```
 
-Serve instructions from the installed binary so `skills get` always matches the installed code. A cached markdown file will drift; the generated skill will not.
+`skills path` atomically materializes the complete selected Skill in a content-addressed user cache so relative references and scripts work normally.
+
+## Runtime entities
+
+Generated CLIs keep `--scope project|global`, `init`, and schema-derived commands:
+
+- singular markdown or symlink: `write`, `show`;
+- plural NDJSON: `append`, `list`, `get`;
+- plural markdown: `create`, `update`, `list`, `get`, `delete`.
+
+Project store files live under `.<effective-store-name>/`; global files live under `~/.<effective-store-name>/`. An entity with `location: "root"` uses the project root in project scope.
+
+## Go API
+
+Downstream code can construct a specialized CLI without code generation:
+
+```go
+import (
+    "github.com/AkaraChen/ctxl/cli"
+    "github.com/AkaraChen/ctxl/core/schema/loader"
+    "github.com/AkaraChen/ctxl/core/skillsgen"
+)
+
+s, err := loader.Parse(embeddedSchema)
+if err != nil {
+    return err
+}
+bundle, err := skillsgen.DefaultBundle(s)
+if err != nil {
+    return err
+}
+return cli.New(cli.Options{Schema: s, Skills: bundle}).Execute()
+```
+
+The canonical Draft 2020-12 schema is checked in at `core/schema/loader/ctxl.schema.json`. Regenerate its Go decoder and validation with `go generate ./core/schema/internal/schemajson`.
+
+## Development
+
+```bash
+go build ./...
+go test ./...
+go vet ./...
+```

@@ -28,9 +28,12 @@ Before any commit, review staged, unstaged, and untracked changes against `docs/
 
 # Commands
 
-Project: `project`.
+Project: `ctxl` (Go 1.24).
 
-Document the repository's real build, test, lint, and format commands here after the first 质问 or when the stack is known.
+- Build: `go build ./...`
+- Test: `go test ./...`
+- Lint: `go vet ./...`
+- Format: `gofmt -w <changed-go-files>`
 
 - Prefer the project's existing package manager and scripts over inventing new ones.
 

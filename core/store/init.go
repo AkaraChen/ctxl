@@ -14,7 +14,7 @@ type InitResult struct {
 
 func (st Store) Init(force bool) ([]InitResult, error) {
 	var out []InitResult
-	for _, e := range st.Schema.Entities {
+	for _, e := range st.schema.Entities {
 		action, err := st.initEntity(e, force)
 		if err != nil {
 			return out, err
@@ -47,7 +47,7 @@ func (st Store) initEntity(e schema.Entity, force bool) (string, error) {
 			return "", err
 		}
 		return "created", nil
-	case e.Kind == schema.KindSingular && e.ResolvedWrite() == schema.WriteSection:
+	case e.Kind == schema.KindSingular && e.Write == schema.WriteSection:
 		if exists && !force {
 			return "skipped", nil
 		}
@@ -67,7 +67,7 @@ func (st Store) initEntity(e schema.Entity, force bool) (string, error) {
 		if exists && !force {
 			return "skipped", nil
 		}
-		if err := st.EnsureParent(path); err != nil {
+		if err := st.ensureParent(path); err != nil {
 			return "", err
 		}
 		if err := os.WriteFile(path, nil, 0o644); err != nil {

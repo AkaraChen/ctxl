@@ -37,7 +37,7 @@ func (st Store) WriteSymlink(e schema.Entity) error {
 	} else if !os.IsNotExist(err) {
 		return err
 	}
-	if err := st.EnsureParent(link); err != nil {
+	if err := st.ensureParent(link); err != nil {
 		return err
 	}
 	rel, err := filepath.Rel(filepath.Dir(link), targetAbs)
@@ -66,7 +66,7 @@ func (st Store) symlinkTarget(e schema.Entity) (string, error) {
 	if filepath.IsAbs(e.Target) {
 		return e.Target, nil
 	}
-	return filepath.Join(st.Root, e.Target), nil
+	return filepath.Join(st.root, e.Target), nil
 }
 
 func sameLink(linkPath, current, targetAbs string) bool {

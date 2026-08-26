@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/AkaraChen/ctxl/core/schema"
 )
@@ -14,8 +13,7 @@ type Record struct {
 	Body   string
 }
 
-// Public flattens frontmatter keys to the top level so show prints
-// service/port/start/stop/last_green, not an internal Fields/Body wrapper.
+// Public flattens frontmatter keys for CLI JSON output.
 func (r Record) Public() map[string]any {
 	out := make(map[string]any, len(r.Fields)+1)
 	for k, v := range r.Fields {
@@ -35,19 +33,14 @@ func (st Store) WriteSingular(e schema.Entity, rec Record) error {
 	if err != nil {
 		return err
 	}
-	if e.ResolvedWrite() == schema.WriteSection {
+	if e.Write == schema.WriteSection {
 		return st.writeSection(path, e.Section, rec.Body)
 	}
-	if err := st.EnsureParent(path); err != nil {
+	if err := st.ensureParent(path); err != nil {
 		return err
 	}
 	if rec.Fields == nil {
 		rec.Fields = map[string]string{}
-	}
-	for _, f := range e.Fields {
-		if f.Name == "last_green" && strings.TrimSpace(rec.Fields["last_green"]) == "" {
-			rec.Fields["last_green"] = time.Now().Format(time.RFC3339)
-		}
 	}
 	var b strings.Builder
 	b.WriteString("---\n")
@@ -86,7 +79,7 @@ func (st Store) ReadSingular(e schema.Entity) (Record, error) {
 		}
 		return Record{}, err
 	}
-	if e.ResolvedWrite() == schema.WriteSection {
+	if e.Write == schema.WriteSection {
 		secs := parseSections(string(raw))
 		if sec, ok := findSection(secs, e.Section); ok {
 			return Record{Fields: map[string]string{"section": sec.Heading}, Body: sec.Body}, nil
@@ -97,7 +90,7 @@ func (st Store) ReadSingular(e schema.Entity) (Record, error) {
 }
 
 func (st Store) writeSection(path, heading, body string) error {
-	if err := st.EnsureParent(path); err != nil {
+	if err := st.ensureParent(path); err != nil {
 		return err
 	}
 	cur := ""

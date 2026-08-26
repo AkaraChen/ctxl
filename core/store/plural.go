@@ -4,9 +4,9 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -18,20 +18,20 @@ func (st Store) AppendNDJSON(e schema.Entity, fields map[string]any) (map[string
 	if err != nil {
 		return nil, err
 	}
-	if err := st.EnsureParent(path); err != nil {
+	if err := st.ensureParent(path); err != nil {
 		return nil, err
 	}
 	existing, err := st.ListNDJSON(e)
 	if err != nil {
 		return nil, err
 	}
-	idField := e.IDField()
+	idField := e.ID
 	next := 1
 	if n := len(existing); n > 0 {
 		if v, ok := asInt(existing[n-1][idField]); ok {
 			next = v + 1
 		} else {
-			next = n + 1
+			return nil, fmt.Errorf("%s: last %s must be an integer", e.Name, idField)
 		}
 	}
 	if fields == nil {
@@ -93,7 +93,7 @@ func (st Store) GetNDJSON(e schema.Entity, id string) (map[string]any, error) {
 	if err != nil {
 		return nil, err
 	}
-	idField := e.IDField()
+	idField := e.ID
 	for _, row := range all {
 		if fmt.Sprint(row[idField]) == id {
 			return row, nil
@@ -113,18 +113,15 @@ func (st Store) WriteMarkdownItem(e schema.Entity, id string, rec Record) error 
 	if rec.Fields == nil {
 		rec.Fields = map[string]string{}
 	}
-	rec.Fields[e.IDField()] = id
+	rec.Fields[e.ID] = id
 	path := filepath.Join(dir, id+".md")
 	var b strings.Builder
 	b.WriteString("---\n")
 	for _, f := range e.Fields {
 		fmt.Fprintf(&b, "%s: %s\n", f.Name, rec.Fields[f.Name])
 	}
-	if _, ok := rec.Fields[e.IDField()]; ok {
-		// already written if listed
-	}
-	if rec.Fields[e.IDField()] != "" && !hasField(e, e.IDField()) {
-		fmt.Fprintf(&b, "%s: %s\n", e.IDField(), id)
+	if rec.Fields[e.ID] != "" && !hasField(e, e.ID) {
+		fmt.Fprintf(&b, "%s: %s\n", e.ID, id)
 	}
 	b.WriteString("---\n")
 	if body := strings.TrimSpace(rec.Body); body != "" {
@@ -202,22 +199,19 @@ func hasField(e schema.Entity, name string) bool {
 func asInt(v any) (int, bool) {
 	switch n := v.(type) {
 	case float64:
+		if math.Trunc(n) != n {
+			return 0, false
+		}
 		return int(n), true
 	case int:
 		return n, true
-	case json.Number:
-		i, err := n.Int64()
-		return int(i), err == nil
-	case string:
-		i, err := strconv.Atoi(n)
-		return i, err == nil
 	default:
 		return 0, false
 	}
 }
 
-// FixedRows drops object-typed fields (such as custom_data) so list defaults
-// to the fixed columns. Pass the original rows when --full is set.
+// FixedRows drops object-typed fields so list defaults to scalar columns.
+// Pass the original rows when --full is set.
 func FixedRows(e schema.Entity, rows []map[string]any) []map[string]any {
 	keep := map[string]bool{}
 	for _, f := range e.Fields {
