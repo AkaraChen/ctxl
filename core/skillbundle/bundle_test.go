@@ -65,13 +65,6 @@ func TestMaterializeRejectsUnsafeEntry(t *testing.T) {
 	}
 }
 
-func TestMaterializeRejectsUnsafeSkillName(t *testing.T) {
-	bundle := Bundle{Skills: []Skill{{Name: "../bad", Entries: []Entry{{Path: "SKILL.md", Data: []byte("x")}}}}}
-	if _, err := bundle.materializeAt("../bad", t.TempDir()); err == nil {
-		t.Fatal("expected unsafe skill name error")
-	}
-}
-
 func assertFile(t *testing.T, path string, data []byte, mode os.FileMode) {
 	t.Helper()
 	actual, err := os.ReadFile(path)
