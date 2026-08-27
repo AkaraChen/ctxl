@@ -49,7 +49,7 @@ When the effective Skill bundle contains two or more Skills, behavior is unchang
 - Singleton, zero arguments: `get` and `path` operate on the sole Skill.
 - Singleton, correct name: `get` and `path` succeed as today.
 - Singleton, wrong name: `get` and `path` fail with the existing unknown-Skill error.
-- Singleton: `skills list` is not a command.
+- Singleton: `skills list` is not a command. Invoking it fails as an unknown command.
 - Multi-skill, missing name: `get` and `path` fail as today (name required).
 - Multi-skill, unknown name: existing unknown-Skill error.
 - Empty bundle via the Go API is not a generated-CLI case (every generated CLI has a built-in Skill). `list` remains available; `get` / `path` still require a name.

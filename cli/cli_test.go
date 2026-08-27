@@ -34,6 +34,10 @@ func TestSingletonSkillsOmitListAndAllowOmittedName(t *testing.T) {
 		t.Fatalf("wrong name error = %v", err)
 	}
 
+	if out, err := executeErr(t, newTestCLI(singletonBundle()), "skills", "list"); err == nil {
+		t.Fatalf("expected singleton skills list to fail, got %q", out)
+	}
+
 	path := strings.TrimSpace(execute(t, newTestCLI(singletonBundle()), "skills", "path"))
 	raw, err := os.ReadFile(path + "/SKILL.md")
 	if err != nil || string(raw) != singletonMarkdown {

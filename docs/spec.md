@@ -43,7 +43,7 @@
 - Singular markdown and symlink entities expose `write` and `show`.
 - Plural NDJSON entities expose `append`, `list`, and `get`.
 - Plural markdown entities expose `create`, `update`, `list`, `get`, and `delete`.
-- Generated CLIs always expose `skills get` and `skills path`. They expose `skills list` only when the effective Skill bundle contains two or more Skills.
+- Generated CLIs always expose `skills get` and `skills path`. They expose `skills list` only when the effective Skill bundle contains two or more Skills. Invoking an omitted `skills` subcommand fails as an unknown command.
 - When the effective Skill bundle contains exactly one Skill, `skills get` and `skills path` accept zero arguments and operate on that Skill. Passing the correct name still succeeds; a wrong name fails as an unknown Skill.
 - Generated CLIs do not expose `schema validate` or a schema-authoring Skill; schema validation belongs to generation.
 

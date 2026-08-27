@@ -12,6 +12,7 @@ Two implementation sites must agree: the command tree an agent can invoke, and t
 
 - Detect a singleton from the effective `skillbundle.Bundle` length when constructing the `skills` command tree.
 - Omit the `list` subcommand when the bundle has exactly one Skill; keep it otherwise.
+- Make the `skills` parent itself runnable and reject leftover arguments so an omitted subcommand fails instead of printing help and succeeding.
 - Accept zero or one positional argument for `get` and `path` on a singleton. Zero arguments resolve to the sole Skill name. One argument is validated against the bundle as today.
 - Keep `ExactArgs(1)` for `get` and `path` when the bundle is empty or has two or more Skills.
 - Generate built-in instruction text from the normalized schema's Skill count (the same set that becomes the runtime bundle). Singleton instructions document the zero-argument forms and omit `list`. Multi-skill instructions keep the existing named forms.

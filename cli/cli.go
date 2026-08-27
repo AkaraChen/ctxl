@@ -306,7 +306,14 @@ func deleteMD(e schema.Entity, open func() (store.Store, error)) *cobra.Command 
 }
 
 func skillsCommand(bundle skillbundle.Bundle) *cobra.Command {
-	cmd := &cobra.Command{Use: "skills", Short: "Access bundled Agent Skills"}
+	cmd := &cobra.Command{
+		Use:   "skills",
+		Short: "Access bundled Agent Skills",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return cmd.Help()
+		},
+	}
 	if _, ok := bundle.SoleName(); !ok {
 		cmd.AddCommand(&cobra.Command{Use: "list", Short: "List bundled skills", RunE: func(cmd *cobra.Command, args []string) error {
 			return printJSON(cmd, bundle.Names())
