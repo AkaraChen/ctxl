@@ -22,7 +22,7 @@ The generated CLI must always carry version-matched instructions for its generat
 - Validate the transformed built-in output and each unchanged custom Skill against the normative Agent Skills specification, including required frontmatter, name constraints, directory-name agreement, and uniqueness across the bundle.
 - Reject symlinks and paths that could escape the declared Skill root.
 - Embed a deterministic file manifest and contents in the generated binary.
-- Expose `skills list`, `skills get`, and `skills path`. `get` prints the effective `SKILL.md`; `path` atomically materializes the complete content-addressed directory into the user cache and returns it.
+- Expose `skills get` and `skills path` on every generated CLI. `get` prints the effective `SKILL.md`; `path` atomically materializes the complete content-addressed directory into the user cache and returns it. Expose `skills list` only when the effective bundle contains two or more Skills. Singleton `get` / `path` accept an omitted name; see `docs/adr/singleton-skill-commands.md`.
 - Use a content digest, not a mutable CLI name alone, as the cache identity. Never expose a partially extracted directory.
 
 The official `skills-ref` implementation may be used as a conformance oracle in fixtures, but it is explicitly a demonstration reference rather than a production SDK. The Go runtime therefore must not require Python or an external `skills-ref` executable.

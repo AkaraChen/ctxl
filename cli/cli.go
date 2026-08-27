@@ -307,17 +307,28 @@ func deleteMD(e schema.Entity, open func() (store.Store, error)) *cobra.Command 
 
 func skillsCommand(bundle skillbundle.Bundle) *cobra.Command {
 	cmd := &cobra.Command{Use: "skills", Short: "Access bundled Agent Skills"}
-	cmd.AddCommand(&cobra.Command{Use: "list", Short: "List bundled skills", RunE: func(cmd *cobra.Command, args []string) error {
-		return printJSON(cmd, bundle.Names())
-	}}, &cobra.Command{Use: "get <name>", Short: "Print bundled Skill instructions", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
-		body, err := bundle.Markdown(args[0])
+	if _, ok := bundle.SoleName(); !ok {
+		cmd.AddCommand(&cobra.Command{Use: "list", Short: "List bundled skills", RunE: func(cmd *cobra.Command, args []string) error {
+			return printJSON(cmd, bundle.Names())
+		}})
+	}
+	cmd.AddCommand(&cobra.Command{Use: skillNameUse("get", bundle), Short: "Print bundled Skill instructions", Args: skillNameArgs(bundle), RunE: func(cmd *cobra.Command, args []string) error {
+		name, err := resolveSkillName(bundle, args)
+		if err != nil {
+			return err
+		}
+		body, err := bundle.Markdown(name)
 		if err != nil {
 			return err
 		}
 		_, err = fmt.Fprint(cmd.OutOrStdout(), string(body))
 		return err
-	}}, &cobra.Command{Use: "path <name>", Short: "Materialize a bundled skill directory", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
-		path, err := bundle.Materialize(args[0])
+	}}, &cobra.Command{Use: skillNameUse("path", bundle), Short: "Materialize a bundled skill directory", Args: skillNameArgs(bundle), RunE: func(cmd *cobra.Command, args []string) error {
+		name, err := resolveSkillName(bundle, args)
+		if err != nil {
+			return err
+		}
+		path, err := bundle.Materialize(name)
 		if err != nil {
 			return err
 		}
@@ -325,6 +336,30 @@ func skillsCommand(bundle skillbundle.Bundle) *cobra.Command {
 		return err
 	}})
 	return cmd
+}
+
+func skillNameUse(verb string, bundle skillbundle.Bundle) string {
+	if _, ok := bundle.SoleName(); ok {
+		return verb + " [name]"
+	}
+	return verb + " <name>"
+}
+
+func skillNameArgs(bundle skillbundle.Bundle) cobra.PositionalArgs {
+	if _, ok := bundle.SoleName(); ok {
+		return cobra.MaximumNArgs(1)
+	}
+	return cobra.ExactArgs(1)
+}
+
+func resolveSkillName(bundle skillbundle.Bundle, args []string) (string, error) {
+	if len(args) == 1 {
+		return args[0], nil
+	}
+	if name, ok := bundle.SoleName(); ok {
+		return name, nil
+	}
+	return "", fmt.Errorf("skill name required")
 }
 
 func printJSON(cmd *cobra.Command, v any) error {
