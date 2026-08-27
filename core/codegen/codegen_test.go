@@ -212,7 +212,22 @@ func TestGenerateExistingModuleDoesNotEditModuleFiles(t *testing.T) {
 	if !bytes.Equal(goMod, after) {
 		t.Fatalf("generator edited go.mod:\n%s", after)
 	}
-	runCommand(t, root, "go", "build", "-o", filepath.Join(root, "hostctl"), "./cmd/hostctl")
+	binary := filepath.Join(root, "hostctl")
+	runCommand(t, root, "go", "build", "-o", binary, "./cmd/hostctl")
+	help := runCommand(t, root, binary, "skills", "--help")
+	if strings.Contains(help, "\n  list ") {
+		t.Fatalf("singleton skills help still exposes list:\n%s", help)
+	}
+	got := runCommand(t, root, binary, "skills", "get")
+	if !strings.Contains(got, "`hostctl skills get`") || strings.Contains(got, "skills list") || strings.Contains(got, "skills get NAME") {
+		t.Fatalf("singleton built-in instructions:\n%s", got)
+	}
+	if named := runCommand(t, root, binary, "skills", "get", "hostctl"); named != got {
+		t.Fatal("named singleton get differed from zero-argument get")
+	}
+	if out, err := exec.Command(binary, "skills", "list").CombinedOutput(); err == nil {
+		t.Fatalf("expected skills list to fail on a singleton CLI:\n%s", out)
+	}
 }
 
 func repositoryRoot(t *testing.T) string {

@@ -45,7 +45,14 @@ Top-level `name` supplies the CLI, store, module, built-in Skill, and output nam
 - `builtin`: the one ctxl-generated command Skill. May supply a source directory, frontmatter overrides, and `inject: "before" | "after"`. If omitted, ctxl creates it implicitly.
 - `custom`: exactly `type` and `directory`. Each directory is a complete Agent Skill bundled without rewriting any file.
 
-Generated CLIs expose the bundle:
+Generated CLIs expose the bundle. When exactly one Skill is bundled (the common built-in-only case), `list` is omitted and `get` / `path` need no name:
+
+```bash
+contextctl skills get
+contextctl skills path
+```
+
+With two or more Skills, `list` enumerates and `get` / `path` require the name:
 
 ```bash
 contextctl skills list

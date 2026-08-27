@@ -164,7 +164,7 @@ func instructions(s schema.Schema) string {
 	fmt.Fprintf(&b, "- Project scope: `%s --scope project ...` stores data under `.%s/` unless an entity uses a root location.\n", s.CLI.Name, s.Store.Name)
 	fmt.Fprintf(&b, "- Global scope: `%s --scope global ...` stores data under `~/.%s/`.\n", s.CLI.Name, s.Store.Name)
 	fmt.Fprintf(&b, "- Initialize declared paths: `%s init`.\n\n", s.CLI.Name)
-	fmt.Fprintf(&b, "Bundled Skills:\n\n- List: `%s skills list`.\n- Read instructions: `%s skills get NAME`.\n- Materialize a complete Skill directory: `%s skills path NAME`.\n\n", s.CLI.Name, s.CLI.Name, s.CLI.Name)
+	writeSkillCommands(&b, s.CLI.Name, len(s.Skills))
 	for _, e := range s.Entities {
 		fmt.Fprintf(&b, "## %s\n\n", e.Command.Name)
 		if e.Description != "" {
@@ -189,6 +189,14 @@ func instructions(s schema.Schema) string {
 	}
 	b.WriteString("<!-- ctxl:generated:end -->")
 	return b.String()
+}
+
+func writeSkillCommands(b *strings.Builder, cliName string, skillCount int) {
+	if skillCount == 1 {
+		fmt.Fprintf(b, "Bundled Skills:\n\n- Read instructions: `%s skills get`.\n- Materialize a complete Skill directory: `%s skills path`.\n\n", cliName, cliName)
+		return
+	}
+	fmt.Fprintf(b, "Bundled Skills:\n\n- List: `%s skills list`.\n- Read instructions: `%s skills get NAME`.\n- Materialize a complete Skill directory: `%s skills path NAME`.\n\n", cliName, cliName, cliName)
 }
 
 func writeEntityCommands(b *strings.Builder, cliName string, e schema.Entity) {

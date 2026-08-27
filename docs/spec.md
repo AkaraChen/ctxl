@@ -43,7 +43,8 @@
 - Singular markdown and symlink entities expose `write` and `show`.
 - Plural NDJSON entities expose `append`, `list`, and `get`.
 - Plural markdown entities expose `create`, `update`, `list`, `get`, and `delete`.
-- Generated CLIs expose `skills list`, `skills get`, and `skills path`.
+- Generated CLIs always expose `skills get` and `skills path`. They expose `skills list` only when the effective Skill bundle contains two or more Skills. Invoking an omitted `skills` subcommand fails as an unknown command.
+- When the effective Skill bundle contains exactly one Skill, `skills get` and `skills path` accept zero arguments and operate on that Skill. Passing the correct name still succeeds; a wrong name fails as an unknown Skill.
 - Generated CLIs do not expose `schema validate` or a schema-authoring Skill; schema validation belongs to generation.
 
 ### Store behavior
@@ -75,7 +76,8 @@
 - Generated built-in instructions use the effective generated CLI and command names and never instruct an agent to pass a schema file.
 - A custom entry has exactly `type` and `directory`. Any number of custom entries is allowed, and ctxl does not rewrite, inject, rename, or merge their contents.
 - Built-in and custom Skill directories follow the Agent Skills directory specification: `SKILL.md` is required and supporting files retain their relative paths.
-- The complete effective Skill bundle is embedded in the generated CLI. `skills list` enumerates it, `skills get` returns a selected Skill's instructions, and `skills path` returns its complete content-addressed materialization for relative file access.
+- The complete effective Skill bundle is embedded in the generated CLI. `skills get` returns a selected Skill's instructions, and `skills path` returns its complete content-addressed materialization for relative file access. `skills list` enumerates the bundle only when it contains two or more Skills.
+- Generated built-in instructions document the zero-argument `skills get` and `skills path` forms when the bundle is a singleton, and `skills list` plus the named forms otherwise.
 - Skill materialization is atomic and safe under concurrent callers.
 - Unsafe paths, escaping symlinks, invalid frontmatter, name mismatches, duplicate effective names, multiple built-in entries, and extra custom-entry fields are rejected during generation.
 

@@ -34,6 +34,14 @@ func (b Bundle) Names() []string {
 	return names
 }
 
+// SoleName returns the only Skill name when the bundle contains exactly one Skill.
+func (b Bundle) SoleName() (string, bool) {
+	if len(b.Skills) != 1 {
+		return "", false
+	}
+	return b.Skills[0].Name, true
+}
+
 func (b Bundle) skill(name string) (Skill, error) {
 	for _, skill := range b.Skills {
 		if skill.Name == name {

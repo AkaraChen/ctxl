@@ -84,7 +84,8 @@ The checked-in JSON Schema is the only normative field-level shape; the PRD does
   - singular markdown and symlink entities: `write`, `show`;
   - plural NDJSON entities: `append`, `list`, `get`;
   - plural markdown entities: `create`, `update`, `list`, `get`, `delete`.
-- A generated CLI exposes `skills list`, `skills get`, and `skills path`.
+- A generated CLI always exposes `skills get` and `skills path`. It exposes `skills list` only when the effective Skill bundle contains two or more Skills.
+- When the effective bundle contains exactly one Skill, `skills get` and `skills path` accept zero arguments and operate on that Skill. Passing the correct name still succeeds.
 - A generated CLI does not expose the runtime-redundant `schema validate` command or the schema-authoring Skill.
 
 ### Bundled Skills
@@ -97,7 +98,8 @@ The checked-in JSON Schema is the only normative field-level shape; the PRD does
 - Injection never places content before YAML frontmatter. The resulting built-in `SKILL.md` and output directory name must satisfy the Agent Skills naming and frontmatter rules.
 - Each custom Skill directory is packaged byte-for-byte except for the representation required to embed and materialize it. ctxl does not inject instructions, rewrite frontmatter, rename it, or merge it with another Skill.
 - Every bundled directory follows the Agent Skills specification: `SKILL.md` is required and supporting directories or files are allowed. Relative paths are preserved; unsafe links or paths escaping the Skill root are rejected.
-- Generated CLIs serve every bundled Skill through `skills list` and `skills get`. `skills path` returns a real directory for the selected Skill so relative references and scripts remain usable.
+- Generated CLIs serve every bundled Skill through `skills get` and, when more than one Skill is present, `skills list`. `skills path` returns a real directory for the selected Skill so relative references and scripts remain usable.
+- Generated built-in instructions document the zero-argument `skills get` / `skills path` forms when the bundle is a singleton, and the named forms plus `skills list` otherwise.
 - Materialization from a single binary is content-addressed and atomic. Identical bundled content reuses the same extracted directory.
 
 ## User-visible failures
@@ -116,7 +118,7 @@ The checked-in JSON Schema is the only normative field-level shape; the PRD does
 4. The developer `ctxl` command has no entity runtime commands. A generated CLI has the expected entity commands and no `--schema` flag.
 5. The generated CLI's entity operations retain the existing observable store behavior for singular markdown, sections, symlinks, NDJSON collections, and markdown collections.
 6. With no `skills` entry, a generated CLI contains exactly one default built-in Skill. A custom-only array still receives that implicit built-in Skill, while an explicit built-in entry replaces the default configuration; a second explicit built-in is rejected.
-7. Multiple custom fixtures containing `SKILL.md`, scripts, references, assets, and other allowed files are bundled without path loss or content rewriting. `skills list`, `skills get`, and `skills path` expose every built-in and custom Skill.
+7. Multiple custom fixtures containing `SKILL.md`, scripts, references, assets, and other allowed files are bundled without path loss or content rewriting. `skills list`, `skills get`, and `skills path` expose every built-in and custom Skill when two or more Skills are present.
 8. Built-in `before` and `after` injection preserve YAML frontmatter at the start of `SKILL.md`, place generated instructions at the configured boundary, and pass Agent Skills conformance checks. Custom `SKILL.md` files remain unchanged.
 9. Regeneration after removing or renaming an entity removes stale generated commands and instructions. User edits inside generated-owned output are not preserved.
 10. Invalid schema or Skill input and render failures do not partially replace a previously valid output.
