@@ -134,3 +134,58 @@ func entity(t *testing.T, s schema.Schema, name string) schema.Entity {
 	t.Fatalf("missing test entity %q", name)
 	return schema.Entity{}
 }
+
+func TestFieldlessSingularMarkdown(t *testing.T) {
+	s, err := loader.Parse([]byte(`{"name":"plain","entities":[{"name":"agents","kind":"singular","format":"markdown","path":"AGENTS.md","location":"root","body":"# Instructions\n"}]}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := t.TempDir()
+	st, err := Open(s, schema.ScopeProject, root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	e := s.Entities[0]
+	if _, err := st.Init(false); err != nil {
+		t.Fatal(err)
+	}
+	raw, err := os.ReadFile(filepath.Join(root, "AGENTS.md"))
+	if err != nil || string(raw) != e.Body {
+		t.Fatalf("init = %q, %v", raw, err)
+	}
+	for _, body := range []string{"", "# Existing\n\n  indentation\n", "---\nA thematic break\n", "---\n---\n\nLegacy body\n"} {
+		if err := st.WriteSingular(e, Record{Body: body}); err != nil {
+			t.Fatal(err)
+		}
+		raw, err := os.ReadFile(filepath.Join(root, "AGENTS.md"))
+		if err != nil || string(raw) != body {
+			t.Fatalf("write = %q, %v", raw, err)
+		}
+		rec, err := st.ReadSingular(e)
+		if err != nil || rec.Body != body {
+			t.Fatalf("read = %+v, %v", rec, err)
+		}
+		if _, err := st.Init(false); err != nil {
+			t.Fatal(err)
+		}
+		rec, err = st.ReadSingular(e)
+		if err != nil || rec.Body != body {
+			t.Fatalf("init changed content = %+v, %v", rec, err)
+		}
+	}
+	if _, err := st.Init(true); err != nil {
+		t.Fatal(err)
+	}
+	rec, err := st.ReadSingular(e)
+	if err != nil || rec.Body != e.Body {
+		t.Fatalf("force = %+v, %v", rec, err)
+	}
+	e.Fields = []schema.Field{{Name: "status", Type: schema.TypeString}}
+	if err := st.WriteSingular(e, Record{Fields: map[string]string{"status": "ready"}, Body: "content"}); err != nil {
+		t.Fatal(err)
+	}
+	rec, err = st.ReadSingular(e)
+	if err != nil || rec.Fields["status"] != "ready" || rec.Body != "content" {
+		t.Fatalf("fielded = %+v, %v", rec, err)
+	}
+}

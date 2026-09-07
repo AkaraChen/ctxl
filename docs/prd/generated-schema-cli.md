@@ -66,7 +66,7 @@ The checked-in JSON Schema is the only normative field-level shape; the PRD does
 - `standalone` is the default. It produces a complete generated project with its own `go.mod`, pins the ctxl runtime version corresponding to the generator, and builds with `go build .` from that project.
 - `existing-module` generates a command package under the caller's existing module and builds through that module, such as `go build ./cmd/<name>`.
 - Existing-module generation does not edit the parent `go.mod` or `go.sum`. If the required ctxl dependency is absent or incompatible, generation fails with an exact remediation command.
-- Both modes expose the same runtime CLI contract.
+- Both modes expose the same runtime CLI contract. Existing-module output may set `generation.package` to emit an importable package exposing `New() *cobra.Command`; a user-owned executable composes it outside the generated root.
 
 ### Generated ownership
 

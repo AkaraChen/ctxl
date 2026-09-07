@@ -55,3 +55,9 @@ Rejected. Module files are user-owned and generation could alter unrelated depen
 - Never remove or replace a directory that is not positively identified as the exact generated target.
 - Do not change generated output until schema validation, Skill validation, rendering, formatting, dependency checks, and a build-oriented structural check succeed.
 - Tests must cover default derivation, every override, stale-file removal, failed-regeneration preservation, both module layouts, generated help, and absence of `--schema`.
+
+## Downstream composition
+
+Existing-module generation may select a non-main Go package using `generation.package`. It exports `New() *cobra.Command` with the embedded schema and Skills, so downstream executables can extend commands without duplicating data or editing generated files. Default main-package generation stays compatible. Product-specific hooks and installers remain downstream. Package identifiers are validated before output replacement.
+
+Fieldless singular Markdown uses the body as the entire file: metadata has no role when the schema declares no fields. This keeps Markdown formatting intact and makes handwritten agent instructions readable. Existing delimiter-only files remain ordinary Markdown rather than being guessed at and migrated. A schema body is the init default, not a fallback for explicit empty writes.

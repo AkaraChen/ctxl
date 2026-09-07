@@ -59,7 +59,7 @@ func (st Store) initEntity(e schema.Entity, force bool) (string, error) {
 		if exists && !force {
 			return "skipped", nil
 		}
-		if err := st.WriteSingular(e, Record{}); err != nil {
+		if err := st.WriteSingular(e, Record{Body: e.Body}); err != nil {
 			return "", err
 		}
 		return "created", nil

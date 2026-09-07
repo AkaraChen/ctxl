@@ -267,3 +267,47 @@ func runCommandWithEnv(t *testing.T, dir string, extraEnv []string, name string,
 	}
 	return string(out)
 }
+
+func TestGeneratedPackageCanBeExtended(t *testing.T) {
+	root := t.TempDir()
+	repo := repositoryRoot(t)
+	writeTestFile(t, root, "go.mod", []byte("module example.com/host\n\ngo 1.24.0\n\nrequire github.com/AkaraChen/ctxl v0.0.0\n\nreplace github.com/AkaraChen/ctxl => "+filepath.ToSlash(repo)+"\n"), 0o644)
+	schemaPath := writeTestFile(t, root, "schema.json", []byte(`{"name":"hostctl","generation":{"mode":"existing-module","package":"generated","output":"internal/generated","ctxl_version":"v0.0.0"},"entities":[{"name":"agents","kind":"singular","format":"markdown","path":"AGENTS.md","location":"root","body":"# Seed\n"}]}`), 0o644)
+	if _, err := Generate(schemaPath); err != nil {
+		t.Fatal(err)
+	}
+	writeTestFile(t, root, "main.go", []byte(`package main
+import (
+ "fmt"
+ "os"
+ "example.com/host/internal/generated"
+ "github.com/spf13/cobra"
+)
+func main() {
+ root := generated.New()
+ root.AddCommand(&cobra.Command{Use: "custom", Run: func(cmd *cobra.Command, args []string) { fmt.Fprintln(cmd.OutOrStdout(), "extended") }})
+ if err := root.Execute(); err != nil { fmt.Fprintln(os.Stderr, err); os.Exit(1) }
+}
+`), 0o644)
+	runCommand(t, root, "go", "mod", "tidy")
+	binary := filepath.Join(root, "hostctl")
+	runCommand(t, root, "go", "build", "-o", binary, ".")
+	if got := runCommand(t, root, binary, "custom"); got != "extended\n" {
+		t.Fatal(got)
+	}
+	runCommand(t, root, binary, "init")
+	if got := runCommand(t, root, binary, "agents", "show"); !strings.Contains(got, "# Seed") {
+		t.Fatal(got)
+	}
+	runCommand(t, root, binary, "agents", "write", "--body", "plain")
+	if got := runCommand(t, root, binary, "agents", "show"); !strings.Contains(got, `"body": "plain"`) {
+		t.Fatal(got)
+	}
+	if _, err := Generate(schemaPath); err != nil {
+		t.Fatal(err)
+	}
+	runCommand(t, root, "go", "build", "-o", binary, ".")
+	if got := runCommand(t, root, binary, "custom"); got != "extended\n" {
+		t.Fatal(got)
+	}
+}
