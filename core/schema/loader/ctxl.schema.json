@@ -60,6 +60,11 @@
         },
         "output": { "$ref": "#/$defs/relativePath" },
         "module": { "type": "string", "minLength": 1 },
+        "package": {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+          "not": { "enum": ["_", "main", "break", "default", "func", "interface", "select", "case", "defer", "go", "map", "struct", "chan", "else", "goto", "package", "switch", "const", "fallthrough", "if", "range", "type", "continue", "for", "import", "return", "var"] }
+        },
         "ctxl_version": {
           "type": "string",
           "pattern": "^v(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$"
@@ -71,7 +76,8 @@
             "properties": { "mode": { "const": "existing-module" } },
             "required": ["mode"]
           },
-          "then": { "not": { "required": ["module"] } }
+          "then": { "not": { "required": ["module"] } },
+          "else": { "not": { "required": ["package"] } }
         }
       ]
     },
@@ -292,8 +298,7 @@
                 "else": {
                   "not": {
                     "anyOf": [
-                      { "required": ["section"] },
-                      { "required": ["body"] }
+                      { "required": ["section"] }
                     ]
                   }
                 }

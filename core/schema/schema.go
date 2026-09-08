@@ -71,6 +71,7 @@ type NameOverride struct {
 }
 
 type Generation struct {
+	Package     string         `json:"package,omitempty"`
 	Mode        GenerationMode `json:"mode,omitempty"`
 	Output      string         `json:"output,omitempty"`
 	Module      string         `json:"module,omitempty"`

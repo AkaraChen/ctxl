@@ -95,3 +95,9 @@
 - The generic `ctxl` executable is a developer-only generator.
 - Generated standalone and existing-module commands embed their validated schema and complete Skill bundle.
 - The runtime command builder and store remain reusable through the public Go API.
+
+## Plain Markdown and downstream composition
+
+- Fieldless singular replacement Markdown is read and written verbatim without requiring or inserting YAML frontmatter. Files from older versions remain readable as Markdown, including their existing delimiters. Entities with declared fields and section writes retain their existing behavior.
+- Singular Markdown `body` supplies initial content for `init`; normal init preserves existing files and force resets to that default. Explicit writes use the supplied body, including an empty body.
+- Existing-module generation accepts an optional non-main `package` identifier and exports `New() *cobra.Command`. The default remains a main package. Custom behavior belongs in a separate user-owned package.

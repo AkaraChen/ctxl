@@ -39,6 +39,9 @@ func (st Store) WriteSingular(e schema.Entity, rec Record) error {
 	if err := st.ensureParent(path); err != nil {
 		return err
 	}
+	if len(e.Fields) == 0 {
+		return os.WriteFile(path, []byte(rec.Body), 0o644)
+	}
 	if rec.Fields == nil {
 		rec.Fields = map[string]string{}
 	}
@@ -85,6 +88,9 @@ func (st Store) ReadSingular(e schema.Entity) (Record, error) {
 			return Record{Fields: map[string]string{"section": sec.Heading}, Body: sec.Body}, nil
 		}
 		return Record{}, fmt.Errorf("no section %q in %s", e.Section, e.Path)
+	}
+	if len(e.Fields) == 0 {
+		return Record{Fields: map[string]string{}, Body: string(raw)}, nil
 	}
 	return parseFrontmatter(string(raw))
 }
